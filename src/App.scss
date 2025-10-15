@@ -1,0 +1,48 @@
+$themes: (
+    default: (
+        primary: #6366f1,
+        secondary: #ec4899,
+        accent: #8b5cf6,
+    ),
+
+    green: (
+        primary: #10b981,
+        secondary: #059669,
+        accent: #34d399,
+    ),
+
+    blue: (
+        primary: #3b82f6,
+        secondary: #2563eb,
+        accent: #60a5fa,
+    ),
+);
+
+$base: (
+    light-bg: #f8fafc,
+    drak-bg: #0f172a,
+    light-text: #1e293b,
+    dark-text: #f8fafc,
+    glass-light-bg: rgba(255, 255, 255, 0.1),
+    glass-dark-bg: rgba(15, 23, 42, 0.7),
+    border-light: rgba(255, 255, 255, 0.2),
+    border-dark: rgba(255, 255, 255, 0.1),
+    shadow-light: 0 8px 32px rgba(0, 0, 0, 0.1),
+    shadow-dark: 0 8px 32px rgba(0, 0, 0, 0.3),
+    blur: 12px,
+);
+
+// 混合宏：生成主题样式
+@mixin theme-style($theme-name, $theme-colors) {
+    .theme-#{$theme-name} {
+        --primary: map-get($theme-colors, primary);
+        --secondary: map-get($theme-colors, secondary);
+        --accent: map-get($theme-colors, accent);
+    }
+}
+
+// 生成所有主题的css变量
+:root {
+    // 基础变量
+    --light-bg: map-get($base, light-bg);
+}
