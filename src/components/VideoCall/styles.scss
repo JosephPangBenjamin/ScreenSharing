@@ -1,0 +1,165 @@
+// 引入全局变量
+@import '../../index.scss';
+
+// 视频通话容器样式
+.video-call-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  background-color: #000;
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+// 远程视频区域
+.video-call__remote {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// 本地视频区域（画中画）
+.video-call__local {
+  position: absolute;
+  bottom: var(--spacing-lg);
+  right: var(--spacing-lg);
+  width: 200px;
+  height: 150px;
+  border: 2px solid var(--color-card);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+  z-index: 10;
+  
+  // 屏幕共享时的样式调整
+  &--screen-sharing {
+    bottom: var(--spacing-md);
+    right: var(--spacing-md);
+    width: 150px;
+    height: 112px;
+    border-width: 1px;
+  }
+  
+  // 响应式调整
+  @media (max-width: 768px) {
+    width: 150px;
+    height: 112px;
+    bottom: var(--spacing-md);
+    right: var(--spacing-md);
+    
+    &--screen-sharing {
+      width: 100px;
+      height: 75px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    width: 120px;
+    height: 90px;
+    
+    &--screen-sharing {
+      width: 80px;
+      height: 60px;
+    }
+  }
+}
+
+// 视频元素基础样式
+.video-call__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background-color: #222;
+}
+
+// 远程视频特定样式
+.video-call__video--remote {
+  max-height: 100%;
+}
+
+// 本地视频特定样式
+.video-call__video--local {
+  transform: scaleX(-1); // 镜像效果
+}
+
+// 状态覆盖层
+.video-call__status-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+// 状态内容
+.video-call__status-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  color: white;
+  font-size: var(--font-size-lg);
+}
+
+// 加载动画
+.video-call__status-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+// 占位符样式
+.video-call__placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+// 旋转动画
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// 视频淡入动画
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// 添加到视频元素的淡入动画
+.video-call__video {
+  animation: fadeIn var(--transition-normal);
+}

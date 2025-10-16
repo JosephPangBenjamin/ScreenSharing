@@ -1,0 +1,200 @@
+// 引入全局变量
+@import '../../../index.scss';
+
+// Input 容器样式
+.ios-input-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  
+  // 全宽样式
+  &--full-width {
+    width: 100%;
+  }
+  
+  // 聚焦状态
+  &--focused {
+    .ios-input {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    }
+    
+    .ios-input__label {
+      color: var(--color-primary);
+    }
+  }
+  
+  // 悬停状态
+  &--hovered {
+    .ios-input {
+      border-color: var(--color-text-secondary);
+    }
+  }
+  
+  // 错误状态
+  &--error {
+    .ios-input {
+      border-color: var(--color-danger);
+    }
+    
+    .ios-input__label {
+      color: var(--color-danger);
+    }
+  }
+  
+  // 标签样式
+  &__label {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-xs);
+    transition: color var(--transition-fast);
+  }
+  
+  // 输入框包装器
+  &__wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  
+  // 输入框样式
+  .ios-input {
+    flex: 1;
+    width: 100%;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    color: var(--color-text);
+    background-color: var(--color-card);
+    transition: all var(--transition-normal);
+    outline: none;
+    
+    // 移除默认的聚焦样式
+    &:focus {
+      outline: none;
+    }
+    
+    // 禁用状态
+    &:disabled {
+      background-color: var(--color-background);
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    
+    // 占位符样式
+    &::placeholder {
+      color: var(--color-text-secondary);
+      opacity: 0.7;
+    }
+  }
+  
+  // 图标样式
+  &__icon {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-secondary);
+    pointer-events: none;
+    
+    &--left {
+      left: var(--spacing-md);
+    }
+    
+    &--right {
+      right: var(--spacing-md);
+    }
+  }
+  
+  // 错误信息样式
+  &__error {
+    font-size: var(--font-size-sm);
+    color: var(--color-danger);
+    margin-top: var(--spacing-xs);
+  }
+  
+  // 尺寸样式
+  // 小尺寸
+  &--small {
+    .ios-input {
+      min-height: 36px;
+      padding: 0 var(--spacing-md);
+      font-size: var(--font-size-sm);
+      border-radius: var(--border-radius-sm);
+    }
+    
+    &__icon {
+      font-size: 14px;
+    }
+    
+    &__icon--left + .ios-input {
+      padding-left: calc(var(--spacing-md) * 2 + 20px);
+    }
+    
+    &__icon--right + .ios-input {
+      padding-right: calc(var(--spacing-md) * 2 + 20px);
+    }
+  }
+  
+  // 中尺寸
+  &--medium {
+    .ios-input {
+      min-height: 44px;
+      padding: 0 var(--spacing-md);
+      font-size: var(--font-size-base);
+      border-radius: var(--border-radius-md);
+    }
+    
+    &__icon {
+      font-size: 16px;
+    }
+    
+    &__icon--left + .ios-input {
+      padding-left: calc(var(--spacing-md) * 2 + 24px);
+    }
+    
+    &__icon--right + .ios-input {
+      padding-right: calc(var(--spacing-md) * 2 + 24px);
+    }
+  }
+  
+  // 大尺寸
+  &--large {
+    .ios-input {
+      min-height: 52px;
+      padding: 0 var(--spacing-md);
+      font-size: var(--font-size-lg);
+      border-radius: var(--border-radius-md);
+    }
+    
+    &__icon {
+      font-size: 18px;
+    }
+    
+    &__icon--left + .ios-input {
+      padding-left: calc(var(--spacing-md) * 2 + 28px);
+    }
+    
+    &__icon--right + .ios-input {
+      padding-right: calc(var(--spacing-md) * 2 + 28px);
+    }
+  }
+}
+
+// 响应式调整
+@media (max-width: 480px) {
+  .ios-input-container {
+    &--large {
+      .ios-input {
+        min-height: 48px;
+        padding: 0 var(--spacing-md);
+        font-size: var(--font-size-base);
+      }
+    }
+  }
+}

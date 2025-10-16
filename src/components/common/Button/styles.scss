@@ -1,0 +1,242 @@
+// 引入全局变量
+@import '../../../index.scss';
+
+// Button 基础样式
+.ios-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 0;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  overflow: hidden;
+  outline: none;
+  
+  // 焦点样式
+  &:focus-visible {
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
+  }
+  
+  // 禁用状态
+  &--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  
+  // 加载状态
+  &--loading {
+    pointer-events: none;
+  }
+  
+  // 全宽样式
+  &--full-width {
+    width: 100%;
+  }
+  
+  // 图标样式
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    
+    &--left {
+      margin-right: var(--spacing-sm);
+    }
+    
+    &--right {
+      margin-left: var(--spacing-sm);
+    }
+  }
+  
+  // 文本样式
+  &__text {
+    flex: 1;
+  }
+  
+  // 加载动画
+  &__loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  
+  // 变体样式
+  // 主按钮
+  &--primary {
+    background-color: var(--color-primary);
+    color: white;
+    
+    &:hover:not(&--disabled) {
+      background-color: #0062cc;
+    }
+    
+    &:active:not(&--disabled) {
+      background-color: #0055b7;
+      transform: scale(0.98);
+    }
+  }
+  
+  // 次要按钮
+  &--secondary {
+    background-color: var(--color-secondary);
+    color: white;
+    
+    &:hover:not(&--disabled) {
+      background-color: #4a48b3;
+    }
+    
+    &:active:not(&--disabled) {
+      background-color: #3e3d98;
+      transform: scale(0.98);
+    }
+  }
+  
+  // 成功按钮
+  &--success {
+    background-color: var(--color-success);
+    color: white;
+    
+    &:hover:not(&--disabled) {
+      background-color: #2caf44;
+    }
+    
+    &:active:not(&--disabled) {
+      background-color: #259539;
+      transform: scale(0.98);
+    }
+  }
+  
+  // 警告按钮
+  &--warning {
+    background-color: var(--color-warning);
+    color: white;
+    
+    &:hover:not(&--disabled) {
+      background-color: #e58800;
+    }
+    
+    &:active:not(&--disabled) {
+      background-color: #cc7a00;
+      transform: scale(0.98);
+    }
+  }
+  
+  // 危险按钮
+  &--danger {
+    background-color: var(--color-danger);
+    color: white;
+    
+    &:hover:not(&--disabled) {
+      background-color: #d1342c;
+    }
+    
+    &:active:not(&--disabled) {
+      background-color: #b72b25;
+      transform: scale(0.98);
+    }
+  }
+  
+  // 轮廓按钮
+  &--outline {
+    background-color: transparent;
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
+    
+    &:hover:not(&--disabled) {
+      background-color: rgba(0, 122, 255, 0.1);
+    }
+    
+    &:active:not(&--disabled) {
+      background-color: rgba(0, 122, 255, 0.2);
+      transform: scale(0.98);
+    }
+  }
+  
+  // 幽灵按钮
+  &--ghost {
+    background-color: transparent;
+    color: var(--color-text);
+    
+    &:hover:not(&--disabled) {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    &:active:not(&--disabled) {
+      background-color: rgba(0, 0, 0, 0.1);
+      transform: scale(0.98);
+    }
+  }
+  
+  // 尺寸样式
+  // 小尺寸
+  &--small {
+    min-height: 32px;
+    padding: 0 var(--spacing-md);
+    font-size: var(--font-size-sm);
+    border-radius: var(--border-radius-sm);
+    
+    & &__loading-spinner {
+      width: 14px;
+      height: 14px;
+    }
+  }
+  
+  // 中尺寸
+  &--medium {
+    min-height: 44px;
+    padding: 0 var(--spacing-lg);
+    font-size: var(--font-size-base);
+    border-radius: var(--border-radius-md);
+    
+    & &__loading-spinner {
+      width: 16px;
+      height: 16px;
+    }
+  }
+  
+  // 大尺寸
+  &--large {
+    min-height: 52px;
+    padding: 0 var(--spacing-xl);
+    font-size: var(--font-size-lg);
+    border-radius: var(--border-radius-md);
+    
+    & &__loading-spinner {
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+// 旋转动画
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// 响应式调整
+@media (max-width: 480px) {
+  .ios-button {
+    &--large {
+      min-height: 48px;
+      padding: 0 var(--spacing-lg);
+      font-size: var(--font-size-base);
+    }
+  }
+}
