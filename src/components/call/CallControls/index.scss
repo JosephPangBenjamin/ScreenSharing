@@ -1,0 +1,76 @@
+@import '../../../assets/styles/variables';
+@import '../../../assets/styles/mixins';
+
+.call-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background-color: $dark;
+  border-radius: $border-radius-lg;
+  width: 100%;
+  max-width: 600px;
+  margin: $spacing-lg auto;
+}
+
+.control-button {
+  @include button-reset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: $gray-700;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    background-color: $gray-600;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &.start-call {
+    background-color: $success;
+
+    &:hover {
+      background-color: darken($success, 10%);
+    }
+  }
+
+  &.end-call {
+    background-color: $danger;
+
+    &:hover {
+      background-color: darken($danger, 10%);
+    }
+  }
+
+  &.video-control {
+    background-color: $video-control-bg;
+
+    &.disabled {
+      background-color: $danger;
+      opacity: 0.8;
+    }
+  }
+
+  &.audio-control {
+    background-color: $audio-control-bg;
+
+    &.disabled {
+      background-color: $danger;
+      opacity: 0.8;
+    }
+  }
+
+  i {
+    font-size: 1.2rem;
+  }
+}

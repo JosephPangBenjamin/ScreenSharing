@@ -1,0 +1,81 @@
+@import '../../../assets/styles/variables';
+@import '../../../assets/styles/mixins';
+
+.logger-container {
+  @include card-style();
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  .logger-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: $spacing-md;
+    border-bottom: 1px solid $gray-100;
+
+    h3 {
+      font-size: $font-size-md;
+      font-weight: 600;
+      margin: 0;
+      color: $dark;
+    }
+
+    .clear-button {
+      @include button-style(transparent, $text-secondary, $gray-100, $spacing-xs $spacing-sm);
+      font-size: $font-size-sm;
+      color: $text-secondary;
+    }
+  }
+
+  .logs {
+    flex: 1;
+    padding: $spacing-md;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: $font-size-sm;
+    line-height: 1.6;
+    background-color: $gray-50;
+
+    .empty-state {
+      color: $text-secondary;
+      text-align: center;
+      padding: $spacing-lg 0;
+      font-style: italic;
+    }
+
+    .log-item {
+      margin-bottom: $spacing-xs;
+      padding: $spacing-xs 0;
+      display: flex;
+      gap: $spacing-sm;
+      border-bottom: 1px solid rgba($gray-300, 0.3);
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .timestamp {
+        color: $primary;
+        white-space: nowrap;
+      }
+
+      .message {
+        flex: 1;
+        word-break: break-word;
+      }
+
+      &.log-info {
+        color: $text-primary;
+      }
+
+      &.log-success {
+        color: $success;
+      }
+
+      &.log-error {
+        color: $danger;
+      }
+    }
+  }
+}

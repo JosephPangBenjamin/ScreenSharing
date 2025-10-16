@@ -21,7 +21,7 @@ export interface WebRTCConfig {
 
 // 媒体设备信息
 export interface MediaDeviceInfo {
-    id: string;
+    deviceId: string;
     label: string;
     kind: MediaDeviceKind;
 }

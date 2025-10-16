@@ -1,0 +1,191 @@
+// 颜色变量
+$primary: #3B82F6;
+$primary-dark: #2563EB;
+$primary-light: #93C5FD;
+$secondary: #10B981;
+$secondary-dark: #059669;
+$secondary-light: #A7F3D0;
+$danger: #EF4444;
+$danger-dark: #DC2626;
+$danger-light: #FEE2E2;
+$dark: #1E293B;
+$light: #F8FAFC;
+$gray: #94A3B8;
+$gray-light: #E2E8F0;
+$gray-dark: #334155;
+$white: #fff;
+
+// 状态颜色
+$status-connected: $secondary;
+$status-connecting: $primary;
+$status-disconnected: $gray;
+$status-failed: $danger;
+
+// 尺寸变量
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// 边框半径
+$border-radius-sm: 4px;
+$border-radius-md: 8px;
+$border-radius-lg: 16px;
+$border-radius-full: 9999px;
+
+// 阴影
+$shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+$shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+// 过渡
+$transition-fast: 0.2s ease;
+$transition-normal: 0.3s ease;
+$transition-slow: 0.5s ease;
+
+// 字体
+$font-family: 'Inter', system-ui, sans-serif;
+$font-size-sm: 14px;
+$font-size-md: 16px;
+$font-size-lg: 18px;
+$font-size-xl: 24px;
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+
+// 布局变量
+$max-width: 1200px;
+$container-padding: 0 20px;
+
+// 间距变量
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// 边框半径变量
+$border-radius-sm: 4px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;
+$border-radius-full: 9999px;
+
+// 颜色变量 - 基础色
+$white: #ffffff;
+$black: #000000;
+$gray-50: #f9fafb;
+$gray-100: #f3f4f6;
+$gray-200: #e5e7eb;
+$gray-300: #d1d5db;
+$gray-400: #9ca3af;
+$gray-500: #6b7280;
+$gray-600: #4b5563;
+$gray-700: #374151;
+$gray-800: #1f2937;
+$gray-900: #111827;
+
+// 颜色变量 - 主题色
+$primary: #3b82f6; // 蓝色 - 主色调
+$primary-light: #60a5fa;
+$primary-dark: #2563eb;
+
+$secondary: #10b981; // 绿色 - 辅助色
+$secondary-light: #34d399;
+$secondary-dark: #059669;
+
+$danger: #ef4444; // 红色 - 错误/危险
+$danger-light: #f87171;
+$danger-dark: #dc2626;
+
+$success: #10b981; // 绿色 - 成功
+$warning: #f59e0b; // 黄色 - 警告
+$info: #3b82f6; // 蓝色 - 信息
+
+// 文本颜色
+$text-primary: #1f2937; // 主要文本
+$text-secondary: #6b7280; // 次要文本
+$text-tertiary: #9ca3af; //  tertiary文本
+$text-inverse: #ffffff; // 反色文本（用于深色背景）
+
+// 背景颜色
+$bg-primary: #ffffff; // 主要背景
+$bg-secondary: #f9fafb; // 次要背景
+$bg-tertiary: #f3f4f6; //  tertiary背景
+$bg-dark: #1f2937; // 深色背景
+
+// 边框颜色
+$border-primary: #e5e7eb;
+$border-secondary: #d1d5db;
+$border-dark: #374151;
+
+// 字体变量
+$font-family: 'Inter', system-ui, -apple-system, sans-serif;
+$font-family-mono: 'Fira Code', monospace;
+
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-md: 16px;
+$font-size-lg: 18px;
+$font-size-xl: 20px;
+$font-size-xxl: 24px;
+$font-size-xxxl: 32px;
+
+$font-weight-light: 300;
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// 阴影变量
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+// 状态颜色
+$status-connected: $success;
+$status-connecting: $warning;
+$status-disconnected: $text-secondary;
+$status-failed: $danger;
+
+// 过渡动画
+$transition-fast: 0.15s ease;
+$transition-normal: 0.3s ease;
+$transition-slow: 0.5s ease;
+
+// 颜色变量
+$dark: #1E293B;
+$gray-700: #334155;
+$gray-600: #475569;
+$success: #10B981; // 成功绿色（开始通话）
+$danger: #EF4444;  // 危险红色（结束通话/禁用状态）
+
+// 音视频控制按钮背景色
+$video-control-bg: #6366F1; // 靛蓝色（视频控制）
+$audio-control-bg: #EC4899; // 粉色（音频控制）
+
+// 间距变量
+$spacing-xs: 0.5rem;
+$spacing-sm: 0.75rem;
+$spacing-md: 1rem;
+$spacing-lg: 1.5rem;
+
+// 边框圆角
+$border-radius-md: 0.5rem;
+$border-radius-lg: 0.75rem;
+
+// 字体设置
+$font-family: 'Inter', system-ui, sans-serif;
+$font-size-sm: 0.875rem;
+$font-size-md: 1rem;
+
+// 状态颜色
+$status-connected: $success;
+$status-connecting: #F59E0B; // 黄色
+$status-disconnected: $gray-600;
+$status-failed: $danger;
+
+

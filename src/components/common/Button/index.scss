@@ -1,0 +1,68 @@
+@import '../../../assets/styles/variables';
+@import '../../../assets/styles/mixins';
+
+.button {
+  @include button-style($primary, $white, darken($primary, 10%));
+  gap: $spacing-xs;
+
+  &.primary {
+    @include button-style($primary, $white, darken($primary, 10%));
+  }
+
+  &.secondary {
+    @include button-style($secondary, $white, darken($secondary, 10%));
+  }
+
+  &.danger {
+    @include button-style($danger, $white, darken($danger, 10%));
+  }
+
+  &.success {
+    @include button-style($success, $white, darken($success, 10%));
+  }
+
+  &.ghost {
+    @include button-style(transparent, $dark, $gray-100);
+    border: 1px solid $gray-300;
+  }
+
+  &.sm {
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-size-sm;
+  }
+
+  &.md {
+    padding: $spacing-sm $spacing-md;
+    font-size: $font-size-md;
+  }
+
+  &.lg {
+    padding: $spacing-md $spacing-lg;
+    font-size: $font-size-lg;
+  }
+
+  &.icon-button {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+    align-items: center;
+
+    &.sm {
+      width: 32px;
+      height: 32px;
+    }
+
+    &.lg {
+      width: 48px;
+      height: 48px;
+    }
+  }
+
+  .prefix-icon, .suffix-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

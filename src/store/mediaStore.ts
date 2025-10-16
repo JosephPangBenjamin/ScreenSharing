@@ -7,7 +7,7 @@ export const localStreamAtom = atom<MediaStream | null>(null);
 export const remoteStreamAtom = atom<MediaStream | null>(null);
 
 // 可用媒体设备状态
-export const mediaDevicesAtom = atom<MediaDeviceInfo | null>(null);
+export const mediaDevicesAtom = atom<MediaDeviceInfo[]>([]);
 
 // 当前使用的摄像头设备ID
 export const currentCameraIdAtom = atom<string | null>(null);
