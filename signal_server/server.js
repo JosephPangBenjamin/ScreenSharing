@@ -12,6 +12,11 @@ app.use(cors());
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
+// 生成唯一消息ID的函数
+function generateMessageId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+}
+
 // 存储房间和用户的映射关系
 const rooms = new Map(); // roomId -> Set(userId)
 // 存储用户连接的映射关系
@@ -46,21 +51,30 @@ wss.on('connection', (ws) => {
         console.log(`用户 ${userId} 加入房间 ${roomId}`);
         console.log(`房间 ${roomId} 当前有 ${rooms.get(roomId).size} 个用户`);
         
+        // 生成唯一消息ID
+        const joinMessageId = generateMessageId();
+        
         // 发送加入成功消息
         ws.send(JSON.stringify({
           type: 'join-success',
           roomId: roomId,
-          userId: userId
+          userId: userId,
+          messageId: joinMessageId
         }));
         
         // 通知房间内其他用户有新用户加入
         broadcastToRoom(roomId, userId, {
           type: 'user-joined',
-          userId: userId
+          userId: userId,
+          messageId: generateMessageId()
         });
       }
       // 转发WebRTC信令消息（offer、answer、ice-candidate）
       else if (data.type === 'offer' || data.type === 'answer' || data.type === 'ice-candidate' || data.type === 'chat') {
+        // 确保消息有messageId，如果没有则添加
+        if (!data.messageId) {
+          data.messageId = generateMessageId();
+        }
         if (!roomId || !userId) {
           console.error('用户未加入房间，无法转发消息');
           return;
@@ -84,7 +98,8 @@ wss.on('connection', (ws) => {
           // 通知房间内其他用户有用户离开
           broadcastToRoom(roomId, userId, {
             type: 'user-left',
-            userId: userId
+            userId: userId,
+            messageId: generateMessageId()
           });
           
           roomId = null;
@@ -111,10 +126,11 @@ wss.on('connection', (ws) => {
       
       console.log(`用户 ${userId} 断开连接，离开房间 ${roomId}`);
       
-      // 通知房间内其他用户有用户离开
+      // 通知房间内其他用户有用户离开 - 确保包含messageId
       broadcastToRoom(roomId, userId, {
         type: 'user-left',
-        userId: userId
+        userId: userId,
+        messageId: generateMessageId()
       });
     }
     
@@ -134,6 +150,11 @@ wss.on('connection', (ws) => {
 function broadcastToRoom(roomId, excludeUserId, message) {
   if (!rooms.has(roomId)) {
     return;
+  }
+  
+  // 确保消息有messageId
+  if (!message.messageId) {
+    message.messageId = generateMessageId();
   }
   
   const roomUsers = rooms.get(roomId);

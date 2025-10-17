@@ -221,7 +221,9 @@ const SIGNALING_SERVER_URL = import.meta.env.VITE_SIGNALING_SERVER_URL || 'ws://
 
 ## HTTPS配置（推荐）
 
-为了确保WebRTC功能正常工作，推荐配置HTTPS。您可以使用Let's Encrypt免费SSL证书：
+**重要：** WebRTC在生产环境中必须使用HTTPS，否则浏览器会阻止媒体设备访问和WebSocket连接。以下是详细配置步骤：
+
+### 1. 安装Certbot并获取SSL证书
 
 ```bash
 # 安装Certbot
@@ -234,7 +236,43 @@ sudo certbot --nginx -d qtai.net.cn -d 8.140.237.167
 sudo systemctl enable certbot.timer
 ```
 
-然后取消 `nginx.conf` 中HTTPS部分的注释，并确保证书路径正确。
+### 2. 验证证书安装位置
+
+安装完成后，证书通常会存储在以下位置：
+- 证书文件：`/etc/letsencrypt/live/qtai.net.cn/fullchain.pem`
+- 密钥文件：`/etc/letsencrypt/live/qtai.net.cn/privkey.pem`
+
+### 3. 部署更新后的Nginx配置
+
+```bash
+# 将更新后的nginx.conf上传到服务器
+sftp qtai.net.cn
+put nginx.conf /tmp/
+exit
+
+# 登录服务器
+ssh qtai.net.cn
+
+# 备份原配置
+cp /etc/nginx/sites-available/default /etc/nginx/sites-available/default.bak
+
+# 复制新配置
+cp /tmp/nginx.conf /etc/nginx/sites-available/default
+
+# 测试配置
+nginx -t
+
+# 重新加载Nginx
+systemctl reload nginx
+```
+
+### 4. 验证HTTPS配置
+
+使用浏览器访问 `https://qtai.net.cn`，确认站点能够通过HTTPS正常访问。
+
+### 5. 检查WebSocket连接
+
+打开浏览器开发者工具，在控制台中查看WebSocket连接是否正常建立，不再出现"WebSocket is closed before the connection is established"错误。
 
 ## 性能优化建议
 

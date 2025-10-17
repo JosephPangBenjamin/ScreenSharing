@@ -28,18 +28,19 @@ const ICE_SERVERS = [
 const SIGNALING_SERVER_URL = import.meta.env.VITE_SIGNALING_SERVER_URL || 'ws://localhost:3000';
 
 // 消息类型定义
-type SignalingMessageType = 'offer' | 'answer' | 'ice-candidate' | 'chat' | 'join-room' | 'leave-room' | 'join-success' | 'user-left';
+type SignalingMessageType = 'offer' | 'answer' | 'ice-candidate' | 'chat' | 'join-room' | 'leave-room' | 'join-success' | 'user-left' | 'user-joined';
 
 interface SignalingMessage {
   type: SignalingMessageType;
-  sender: string;
-  roomId: string;
+  sender?: string;
+  roomId?: string;
   timestamp: number;
   offer?: RTCSessionDescriptionInit;
   answer?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
   message?: string;
   messageId?: string;
+  userId?: string;
 }
 
 export const useWebRTC = () => {
@@ -71,6 +72,18 @@ export const useWebRTC = () => {
   const politeRef = useRef<boolean>(Math.random() > 0.5); // 随机决定是否为"礼貌"端，用于完美协商
   const joinRoomSentRef = useRef<boolean>(false); // 用于跟踪join-room消息是否已发送
   
+  // WebSocket重连相关状态
+  const isConnectingRef = useRef<boolean>(false); // 标记是否正在建立连接
+  const reconnectAttemptsRef = useRef<number>(0); // 重连尝试次数
+  const maxReconnectAttempts = 5; // 最大重连次数
+  const baseReconnectDelay = 2000; // 基础重连延迟（毫秒）
+  
+  // 用于存储已处理的消息ID，避免重复处理
+  const processedMessagesRef = useRef<Set<string>>(new Set<string>());
+  
+  // 用于存储已连接的对等方ID
+  const connectedPeerIdsRef = useRef<Set<string>>(new Set<string>());
+  
   // 创建或加入房间
   const createOrJoinRoom = useCallback((id?: string) => {
     const newRoomId = id || `room_${Math.random().toString(36).substring(2, 10)}`;
@@ -81,6 +94,14 @@ export const useWebRTC = () => {
   // 初始化本地媒体流
   const initializeLocalStream = useCallback(async (audio = true) => {
     try {
+      // 检查浏览器是否支持媒体设备API
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const errorMsg = '您的浏览器不支持媒体设备API。请使用现代浏览器如Chrome、Firefox或Edge。';
+        console.error(errorMsg);
+        setErrorMessage(errorMsg);
+        throw new Error(errorMsg);
+      }
+      
       // 获取用户媒体设备权限
       const stream = await navigator.mediaDevices.getUserMedia({
         audio,
@@ -111,7 +132,20 @@ export const useWebRTC = () => {
       return stream;
     } catch (error) {
       console.error('获取本地媒体流失败:', error);
-      setErrorMessage('无法访问摄像头或麦克风，请确保已授予权限。');
+      
+      // 根据不同的错误类型提供更具体的错误信息
+      let errorMessage = '无法访问摄像头或麦克风';
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
+          errorMessage = '您拒绝了媒体设备访问权限，请在浏览器设置中允许访问摄像头和麦克风。';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = '未找到摄像头或麦克风设备。';
+        } else if (error.name === 'NotReadableError') {
+          errorMessage = '摄像头或麦克风被其他应用占用，请先关闭占用设备的应用。';
+        }
+      }
+      
+      setErrorMessage(errorMessage);
       throw error;
     }
   }, [setLocalStream, setErrorMessage]);
@@ -119,6 +153,14 @@ export const useWebRTC = () => {
   // 创建屏幕共享流
   const startScreenSharing = useCallback(async () => {
     try {
+      // 检查浏览器是否支持屏幕共享API
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        const errorMsg = '您的浏览器不支持屏幕共享API。请使用现代浏览器如Chrome、Firefox或Edge。';
+        console.error(errorMsg);
+        setErrorMessage(errorMsg);
+        throw new Error(errorMsg);
+      }
+      
       // 请求屏幕共享权限
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
@@ -128,24 +170,41 @@ export const useWebRTC = () => {
       setScreenStream(screenStream);
       
       // 当屏幕共享停止时的处理
-      screenStream.getVideoTracks()[0].onended = () => {
-        setScreenSharingEnabled(false);
-        setScreenStream(null);
-        // 如果正在通话中，重新发送本地视频流
-        if (peerConnectionRef.current && localStream) {
-          replaceTrack('video', localStream.getVideoTracks()[0]);
-        }
-      };
+      const videoTrack = screenStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.onended = () => {
+          setScreenSharingEnabled(false);
+          setScreenStream(null);
+          // 如果正在通话中，重新发送本地视频流
+          if (peerConnectionRef.current && localStream) {
+            const cameraTrack = localStream.getVideoTracks()[0];
+            if (cameraTrack) {
+              replaceTrack('video', cameraTrack);
+            }
+          }
+        };
+      }
       
       // 如果正在通话中，替换视频轨道
-      if (peerConnectionRef.current) {
-        replaceTrack('video', screenStream.getVideoTracks()[0]);
+      if (peerConnectionRef.current && videoTrack) {
+        replaceTrack('video', videoTrack);
       }
       
       return screenStream;
     } catch (error) {
       console.error('获取屏幕共享流失败:', error);
-      setErrorMessage('无法开始屏幕共享，请确保已授予权限。');
+      
+      // 根据不同的错误类型提供更具体的错误信息
+      let errorMessage = '无法开始屏幕共享';
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
+          errorMessage = '您拒绝了屏幕共享权限，请允许访问。';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = '无法找到可共享的屏幕内容。';
+        }
+      }
+      
+      setErrorMessage(errorMessage);
       throw error;
     }
   }, [setScreenStream, setScreenSharingEnabled, localStream]);
@@ -437,6 +496,12 @@ export const useWebRTC = () => {
     joinRoomSentRef.current = false;
     if (signalingType !== 'server' || !roomId || !userId) return;
     
+    // 避免重复连接或在达到最大重连次数后继续尝试
+    if (isConnectingRef.current || 
+        reconnectAttemptsRef.current >= maxReconnectAttempts) {
+      return;
+    }
+    
     // 如果已经有连接，先关闭
     if (wsConnectionRef.current) {
       wsConnectionRef.current.close();
@@ -444,12 +509,28 @@ export const useWebRTC = () => {
     }
     
     try {
+      // 标记正在建立连接
+      isConnectingRef.current = true;
+      
       // 创建WebSocket连接
       wsConnectionRef.current = new WebSocket(SIGNALING_SERVER_URL);
       
+      // 设置连接超时
+      const connectionTimeout = setTimeout(() => {
+        if (wsConnectionRef.current?.readyState === WebSocket.CONNECTING) {
+          console.warn('WebSocket连接超时，正在关闭...');
+          wsConnectionRef.current.close();
+          isConnectingRef.current = false;
+        }
+      }, 10000); // 10秒超时
+      
       // 连接打开时
       wsConnectionRef.current.onopen = () => {
+        clearTimeout(connectionTimeout);
         console.log('WebSocket连接已建立');
+        isConnectingRef.current = false;
+        reconnectAttemptsRef.current = 0; // 重置重连次数
+        
         // 延迟发送加入房间消息，确保连接状态稳定
         setTimeout(() => {
           if (wsConnectionRef.current?.readyState === WebSocket.OPEN && !joinRoomSentRef.current) {
@@ -474,23 +555,27 @@ export const useWebRTC = () => {
         try {
           const message = JSON.parse(event.data) as SignalingMessage;
           
-          // 确保消息有messageId，避免重复处理
-          if (!message.messageId) {
-            console.warn('忽略无messageId的消息');
-            return;
+          // 忽略自己发送的消息
+          if (message.sender && message.sender === userId) return;
+          
+          // 处理消息ID，确保去重
+          let msgId = message.messageId;
+          // 如果没有messageId，生成一个临时ID用于去重
+          if (!msgId) {
+            // 基于消息类型、发送者和时间戳生成临时ID
+            const tempId = `${message.type}_${message.sender || 'unknown'}_${message.timestamp || Date.now()}`;
+            msgId = `temp_${tempId}`;
+            console.warn('消息缺少messageId，使用临时ID进行处理:', msgId);
           }
           
-          // 忽略自己发送的消息
-          if (message.sender === userId) return;
-          
           // 避免重复处理消息
-          if (processedMessagesRef.current.has(message.messageId)) {
-            console.log('忽略已处理的消息:', message.messageId);
+          if (processedMessagesRef.current.has(msgId)) {
+            console.log('忽略已处理的消息:', msgId);
             return;
           }
           
           // 添加到已处理集合
-          processedMessagesRef.current.add(message.messageId);
+          processedMessagesRef.current.add(msgId);
           
           // 限制集合大小，防止内存泄漏
           if (processedMessagesRef.current.size > 1000) {
@@ -502,9 +587,25 @@ export const useWebRTC = () => {
           
           // 处理不同类型的消息
           if (message.type === 'join-room' || message.type === 'join-success') {
-            console.log('用户加入房间:', message.sender);
+            // 使用userId字段，因为join-success消息中可能没有sender
+            const peerId = message.userId || message.sender;
+            console.log('用户加入房间:', peerId);
             // 新用户加入时，主动创建连接
-            if (!peerConnectionRef.current && message.sender !== userId) {
+            if (!peerConnectionRef.current && peerId !== userId && peerId) {
+              createPeerConnection();
+              // 延迟发送offer，确保对方已准备好
+              setTimeout(() => {
+                createOffer();
+              }, 500);
+            }
+          } else if (message.type === 'user-joined') {
+            console.log('检测到用户加入:', message.userId);
+            // 记录连接的对端ID
+            if (message.userId) {
+              connectedPeerIdsRef.current.add(message.userId);
+            }
+            // 确保有对等连接
+            if (!peerConnectionRef.current) {
               createPeerConnection();
               // 延迟发送offer，确保对方已准备好
               setTimeout(() => {
@@ -512,27 +613,31 @@ export const useWebRTC = () => {
               }, 500);
             }
           } else if (message.type === 'user-left') {
-            console.log('用户离开房间:', message.sender);
-            // 移除离开的对等连接
-            if (connectedPeerIdsRef.current.has(message.sender)) {
-              connectedPeerIdsRef.current.delete(message.sender);
-              // 如果没有连接的对等方，清理资源
-              if (connectedPeerIdsRef.current.size === 0 && peerConnectionRef.current) {
-                closeConnection();
+              // 统一使用userId字段
+              const peerId = message.userId || message.sender;
+              console.log('用户离开房间:', peerId);
+              // 移除离开的对等连接
+              if (peerId && connectedPeerIdsRef.current.has(peerId)) {
+                connectedPeerIdsRef.current.delete(peerId);
+                // 如果没有连接的对等方，清理资源
+                if (connectedPeerIdsRef.current.size === 0 && peerConnectionRef.current) {
+                  closeConnection();
+                }
               }
-            }
-          } else if (message.type === 'offer' && message.offer) {
-            handleOffer(message.offer).catch(err => {
-              console.error('处理Offer出错:', err);
-            });
-            // 记录连接的对端ID
-            connectedPeerIdsRef.current.add(message.sender);
+            } else if (message.type === 'offer' && message.offer) {
+              handleOffer(message.offer).catch(err => {
+                console.error('处理Offer出错:', err);
+              });
+              // 记录连接的对端ID
+              if (message.sender) {
+                connectedPeerIdsRef.current.add(message.sender);
+              }
           } else if (message.type === 'answer' && message.answer) {
             handleAnswer(message.answer).catch(err => {
               console.error('处理Answer出错:', err);
             });
             // 记录连接的对端ID
-            if (!connectedPeerIdsRef.current.has(message.sender)) {
+            if (message.sender && !connectedPeerIdsRef.current.has(message.sender)) {
               connectedPeerIdsRef.current.add(message.sender);
               console.log('已连接到对端:', message.sender);
             }
@@ -556,14 +661,29 @@ export const useWebRTC = () => {
       
       // 连接关闭
       wsConnectionRef.current.onclose = () => {
+        clearTimeout(connectionTimeout);
         console.log('WebSocket连接已关闭');
         wsConnectionRef.current = null;
+        isConnectingRef.current = false;
         
-        // 尝试重连
-        setTimeout(() => {
-          console.log('尝试重新连接WebSocket...');
-          initializeWebSocket();
-        }, 5000);
+        // 增加重连尝试次数
+        reconnectAttemptsRef.current++;
+        
+        // 实现指数退避重连策略
+        if (reconnectAttemptsRef.current <= maxReconnectAttempts) {
+          const delay = baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current - 1);
+          // 增加一些随机抖动，避免多客户端同时重连
+          const jitter = Math.random() * 1000;
+          const actualDelay = Math.min(delay + jitter, 30000); // 最大延迟30秒
+          
+          console.log(`尝试重新连接WebSocket (第${reconnectAttemptsRef.current}次，延迟${Math.round(actualDelay)}ms)...`);
+          setTimeout(() => {
+            initializeWebSocket();
+          }, actualDelay);
+        } else {
+          console.error(`WebSocket连接失败，已达到最大重连次数(${maxReconnectAttempts})`);
+          setErrorMessage('连接到信令服务器失败，请刷新页面重试');
+        }
       };
       
       // 连接错误
@@ -573,14 +693,9 @@ export const useWebRTC = () => {
     } catch (error) {
       console.error('初始化WebSocket连接失败:', error);
       setErrorMessage('连接到信令服务器失败');
+      isConnectingRef.current = false;
     }
   }, [roomId, userId, signalingType, setMessages, setErrorMessage, createPeerConnection]);
-  
-  // 用于存储已处理的消息ID，避免重复处理
-  const processedMessagesRef = useRef<Set<string>>(new Set<string>());
-  
-  // 用于存储已连接的对等方ID
-  const connectedPeerIdsRef = useRef<Set<string>>(new Set<string>());
   
   // 清理连接资源的函数引用 - 用于避免循环依赖
   const closeConnectionRef = useRef<() => void>();
@@ -949,6 +1064,10 @@ export const useWebRTC = () => {
       window.removeEventListener('storage', signalingEventListenerRef.current);
       signalingEventListenerRef.current = null;
     }
+    
+    // 重置WebSocket重连状态
+    isConnectingRef.current = false;
+    reconnectAttemptsRef.current = 0;
   }, [localStream, setLocalStream, stopScreenSharing, closeConnection]);
   
   // 监听roomId变化，设置信令监听器
@@ -974,25 +1093,6 @@ export const useWebRTC = () => {
       }
     };
   }, [roomId, signalingType, setupSignalingListener, initializeWebSocket]);
-  
-  // 单独的effect用于发送join-room消息，避免循环依赖
-  useEffect(() => {
-    if (roomId && !joinRoomSentRef.current) {
-      // 发送join-room消息通知其他用户
-      setTimeout(() => {
-        sendSignalingMessage({
-          type: 'join-room'
-        });
-        // 标记已发送，避免重复发送
-        joinRoomSentRef.current = true;
-      }, 100);
-    }
-    
-    // 当roomId改变时重置标记
-    return () => {
-      joinRoomSentRef.current = false;
-    };
-  }, [roomId, sendSignalingMessage]);
   
   // 监听本地音视频状态变化
   useEffect(() => {
@@ -1027,11 +1127,17 @@ export const useWebRTC = () => {
     return () => {
       cleanupResources();
       
-      // 确保WebSocket连接关闭
+      // 确保所有WebSocket相关状态都被重置
       if (wsConnectionRef.current) {
-        wsConnectionRef.current.close();
+        try {
+          wsConnectionRef.current.close(1000, 'Component unmounted');
+        } catch (e) {
+          console.warn('关闭WebSocket连接时出错:', e);
+        }
         wsConnectionRef.current = null;
       }
+      isConnectingRef.current = false;
+      reconnectAttemptsRef.current = 0;
     };
   }, [cleanupResources]);
   
