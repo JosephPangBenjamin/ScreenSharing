@@ -1,5 +1,5 @@
 // 引入全局变量
-@import '../../../index.scss';
+@use '../../../index' as *;
 
 // Button 基础样式
 .ios-button {

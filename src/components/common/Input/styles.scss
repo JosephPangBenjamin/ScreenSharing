@@ -1,5 +1,5 @@
 // 引入全局变量
-@import '../../../index.scss';
+@use '../../../index' as *;
 
 // Input 容器样式
 .ios-input-container {

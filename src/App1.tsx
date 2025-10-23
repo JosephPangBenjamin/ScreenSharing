@@ -25,7 +25,13 @@ import {handleOnOpen, handleOnError} from "./utils/test.ts";
 const config = {
     iceServers: [
         { urls: "stun:stun.l.google.com:19302" }, // 主STUN
-        { urls: "stun:stun.mozilla.org:3478" }    // 备用STUN（提高可靠性）
+        { urls: "stun:stun.mozilla.org:3478" },    // 备用STUN（提高可靠性）
+        // 添加TURN服务器以提高在复杂网络环境下的连接成功率
+        {
+            urls: "turn:qtai.net.cn",
+            username: "webrtc",
+            credential: "turnserver"
+        }
     ]
 };
 const mediaConstraints = {
@@ -36,7 +42,7 @@ const mediaConstraints = {
         }
     }
 };
-const wss_url = "wss://www.qtai.net.cn:3000/"
+const wss_url = "wss://www.qtai.net.cn:3000/";
 function App1() {
     const [userName, setUserName] = useState("");
     const [remoteUserName, setRemoteUserName] = useState("");
