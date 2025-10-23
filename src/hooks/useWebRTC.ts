@@ -263,7 +263,7 @@ export const useWebRTC = () => {
       const pc = new RTCPeerConnection({ 
         iceServers: ICE_SERVERS,
         // 启用ICE候选者聚合，减少网络流量
-        iceCandidatePoolSize: 10 
+        iceCandidatePoolSize: 10
       });
       peerConnectionRef.current = pc;
       
