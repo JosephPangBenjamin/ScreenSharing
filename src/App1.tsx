@@ -25,13 +25,7 @@ import {handleOnOpen, handleOnError} from "./utils/test.ts";
 const config = {
     iceServers: [
         { urls: "stun:stun.l.google.com:19302" }, // 主STUN
-        { urls: "stun:stun.mozilla.org:3478" },    // 备用STUN（提高可靠性）
-        // 添加TURN服务器以提高在复杂网络环境下的连接成功率
-        {
-            urls: "turn:qtai.net.cn",
-            username: "webrtc",
-            credential: "turnserver"
-        }
+        { urls: "stun:stun.mozilla.org:3478" }    // 备用STUN（提高可靠性）
     ]
 };
 const mediaConstraints = {
@@ -207,34 +201,11 @@ function App1() {
 
     const handleTrackEvent = (event: RTCTrackEvent) => {
         console.log("track-event:", event, event.streams);
-        const remoteVideo = remoteVideoRef.current;
-        if (!remoteVideo) {
-            console.error("远程视频元素未初始化");
-            return;
+        if (!remoteVideoRef.current) {
+            console.error("remotevideoref错误");
+            return
         }
-
-        // 优先使用事件中的流，若不存在则用轨道创建新流
-        let stream = event.streams[0];
-        if (!stream) {
-            stream = new MediaStream();
-            stream.addTrack(event.track);
-            console.log("轨道未关联到流，已手动创建流");
-        }
-
-        // 检查流中是否包含视频轨道
-        const hasVideoTrack = stream.getVideoTracks().length > 0;
-        if (!hasVideoTrack) {
-            console.warn("远程流中无视频轨道");
-        }
-
-        // 绑定流到视频元素
-        remoteVideo.srcObject = stream;
-
-        // 尝试自动播放，如失败则显示手动播放按钮
-        remoteVideo.play().catch(err => {
-            console.warn("自动播放失败，可能需要用户交互:", err);
-            setShowPlayButton(true);
-        });
+        remoteVideoRef.current.srcObject = event.streams[0];
     };
     // const handleTrackEvent111 = (event: RTCTrackEvent) => {
     //     console.log("track-event:", event);
@@ -490,61 +461,37 @@ function App1() {
     }
 
     const ConnectionWss = () => {
-        // 动态选择WebSocket协议，与页面协议保持一致
-        const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        const serverUrl = `${scheme}://${window.location.hostname}:3000`;
-        console.log("连接WebSocket服务器:", serverUrl);
-        
-        websocket.current = new WebSocket(serverUrl, "json");
+        websocket.current = new WebSocket(wss_url, "json");
 
         if (websocket.current) {
-            websocket.current.onopen = (event) => {
-                console.log("WebSocket连接已建立");
-                if (handleOnOpen) handleOnOpen(event);
-            };
+            websocket.current.onopen = handleOnOpen;
             websocket.current.onmessage = (event: MessageEvent) => {
                 if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
-                    try {
-                        const msg = JSON.parse(event.data);
-                        console.log("收到WebSocket消息:", msg.type);
-                        switch (msg.type) {
-                            case "id":
-                                setUserId(msg.id);
-                                sendUserName(msg.id);
-                                break;
-                            case "username":
-                                break;
-                            case "userlist":
-                                setUserList(msg.users);
-                                break;
-                            case "video-offer":
-                                handleVideoOfferMsg(msg);
-                                break;
-                            case "video-answer":
-                                handleVideoAnswerMsg(msg);
-                                break;
-                            case "new-ice-candidate":
-                                handleNewICECandidateMsg(msg);
-                                break;
-                            case "hang-up":
-                                console.log("收到挂断消息");
-                                closeVideoCall();
-                                break;
-                            default:
-                                console.log("未处理的消息类型:", msg.type);
-                        }
-                    } catch (error) {
-                        console.error("解析WebSocket消息失败:", error);
+                    const msg = JSON.parse(event.data);
+                    switch (msg.type) {
+                        case "id":
+                            setUserId(msg.id);
+                            sendUserName(msg.id);
+                            break;
+                        case "username":
+                            break;
+                        case "userlist":
+                            setUserList(msg.users);
+                            break;
+                        case "video-offer":
+                            handleVideoOfferMsg(msg);
+                            break;
+                        case "video-answer":
+                            handleVideoAnswerMsg(msg);
+                            break;
+                        case "new-ice-candidate":
+                            handleNewICECandidateMsg(msg);
+                            break;
                     }
+
                 }
             };
-            websocket.current.onerror = (error) => {
-                console.error("WebSocket错误:", error);
-                if (handleOnError) handleOnError(error);
-            };
-            websocket.current.onclose = () => {
-                console.log("WebSocket连接已关闭");
-            };
+            websocket.current.onerror = handleOnError;
         }
     };
 
