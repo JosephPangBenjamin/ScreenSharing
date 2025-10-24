@@ -87,8 +87,8 @@ function App1() {
             date: Date.now(),
             id: clientID.current,
             type: "username"
-        })
-    }
+        });
+    };
 
     const sendToServer = (msg: any)=> {
         const msgJSON = JSON.stringify(msg);
@@ -199,15 +199,14 @@ function App1() {
     const handleNegotiationNeededEvent = async (event: Event) => {
         log(`*** Negotiation needed${event}`);
         try {
-            log("---> Creating offer");
-            const offer = await peerConnection?.current?.createOffer();
             if (peerConnection.current?.signalingState !== 'stable') {
                 // 说明已经有local-offer或者remote-offer
                 // 只处理发起或者应答就行
                 log("     -- The connection isn't stable yet; postponing...")
                 return;
             }
-
+            log("---> Creating offer");
+            const offer = await peerConnection?.current?.createOffer();
             log("---> Setting local description to the offer");
             await peerConnection.current.setLocalDescription(offer);
 
@@ -230,42 +229,8 @@ function App1() {
             console.error("remotevideoref错误");
             return
         }
-        // @ts-ignore
-        document.getElementById("received_video").srcObject = event.streams[0];
-        // remoteVideoRef.current.srcObject = event.streams[0];
+        remoteVideoRef.current.srcObject = event.streams[0];
     };
-    // const handleTrackEvent111 = (event: RTCTrackEvent) => {
-    //     console.log("track-event:", event);
-    //     // remoteVideoRef.current && (remoteVideoRef.current.srcObject = event.streams[0]);
-    //
-    //     const remoteVideo = remoteVideoRef.current;
-    //     if (!remoteVideo) {
-    //         console.error("远程视频元素未初始化");
-    //         return;
-    //     }
-    //
-    //     // 优先使用事件中的流，若不存在则用轨道创建新流
-    //     let stream = event.streams[0];
-    //     if (!stream) {
-    //         stream = new MediaStream();
-    //         stream.addTrack(event.track);
-    //         console.log("轨道未关联到流，已手动创建流");
-    //     }
-    //
-    //     // 检查流中是否包含视频轨道
-    //     const hasVideoTrack = stream.getVideoTracks().length > 0;
-    //     if (!hasVideoTrack) {
-    //         console.warn("远程流中无视频轨道");
-    //     }
-    //
-    //     // 绑定流到视频元素
-    //     remoteVideo.srcObject = stream;
-    //
-    //     // 主动触发播放（解决部分浏览器自动播放限制）
-    //     remoteVideo.play().catch(err => {
-    //         console.warn("自动播放失败，可能需要用户交互:", err);
-    //     });
-    // };
     const createPeerConnection = () => {
         // const officeConfig = {
         //     iceServers: [     // Information about ICE servers - Use your own!
@@ -359,20 +324,17 @@ function App1() {
                 // 获取设备许可
                 try {
                     webCamStream.current = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-                    // @ts-ignore
-                    document.getElementById("local_video").srcObject = webCamStream.current;
+
+                    localVideoRef.current && (localVideoRef.current.srcObject = webCamStream.current);
                 } catch (err: any) {
                     handleGetUserMediaError(err);
                 }
 
                 // 将媒体流所有轨道添加到连接中
                 try {
-                    console.log()
-                    // @ts-ignore
-                    webCamStream.current.getTracks().forEach(
+                    webCamStream.current && webCamStream.current.getTracks().forEach(
                         track => {
-                            // @ts-ignore
-                            peerConnection.current.addTransceiver(track, {streams: [webCamStream.current]})
+                            webCamStream.current && peerConnection.current && (peerConnection.current.addTransceiver(track, {streams: [webCamStream.current]}));
                         }
                     );
                 } catch (err: any) {
@@ -424,23 +386,15 @@ function App1() {
                 return;
             }
 
-            // @ts-ignore
-            document.getElementById("local_video").srcObject = webCamStream.current;
+            localVideoRef.current && (localVideoRef.current.srcObject = webCamStream.current);
 
             try {
 
                 webCamStream.current.getTracks().forEach(
                     track => {
-                        // @ts-ignore
-                        peerConnection.current.addTransceiver(track, {streams: [webCamStream.current]})
+                        webCamStream.current && peerConnection.current?.addTransceiver(track, { streams: [webCamStream.current]});
                     }
-                );
-
-                // webCamStream.current.getTracks().forEach(
-                //     track => {
-                //         webCamStream.current && peerConnection.current?.addTransceiver(track, { streams: [webCamStream.current]});
-                //     }
-                // )
+                )
             } catch (err: any) {
                 handleGetUserMediaError(err);
             }
