@@ -44,9 +44,8 @@ const mediaConstraints = {
 };
 const wss_url = "wss://www.qtai.net.cn:3000/";
 function App1() {
-    const [userName, setUserName] = useState("");
-    const [remoteUserName, setRemoteUserName] = useState("");
-    const [_, setUserId] = useState<string | null>(null);
+    const myUsername = useRef("");
+    const targetUsername = useRef("");
     const [roomId, setRoomId] = useState("1");
     const [userList, setUserList] = useState<string[]>([]);
     const peerConnection = useRef<RTCPeerConnection | null>(null);
@@ -56,7 +55,20 @@ function App1() {
     const webCamStream = useRef<MediaStream | null>(null);
     // 新增状态管理手动播放按钮
     const [showPlayButton, setShowPlayButton] = useState(false);
+    const clientID = useRef("");
 
+    function reportError(errMessage: any) {
+        log_error(`Error ${errMessage.name}: ${errMessage.message}`);
+    }
+    // 日志
+    const log = (text: any) => {
+        const time = new Date();
+        console.log("[" + time.toLocaleTimeString() + "]" + text);
+    };
+    const log_error = (text: any) => {
+        const time = new Date();
+        console.trace("[" + time.toLocaleTimeString() + "]" + text);
+    };
     // 手动播放函数
     const handleManualPlay = () => {
         const remoteVideo = remoteVideoRef.current;
@@ -69,22 +81,25 @@ function App1() {
         }
     };
 
-    const sendUserName = (id: string) => {
+    const sendUserName = () => {
         sendToServer({
-            name: userName,
+            name: myUsername.current,
             date: Date.now(),
-            id,
+            id: clientID.current,
             type: "username"
         })
     }
 
     const sendToServer = (msg: any)=> {
         const msgJSON = JSON.stringify(msg);
+        log("Sending '" + msg.type + "' message: " + msgJSON);
         websocket.current?.send(msgJSON);
     }
 
     const closeVideoCall = () => {
+        log("Closing the call");
         if (peerConnection.current) {
+            log("--> Closing the peer connection");
             peerConnection.current.ontrack = null;
             peerConnection.current.onicecandidate = null;
             peerConnection.current.oniceconnectionstatechange = null;
@@ -114,10 +129,10 @@ function App1() {
     }
     const handleICECandidateEvent = (event:  RTCPeerConnectionIceEvent) => {
         if (event.candidate) {
-            console.log("ice-candidate:", event.candidate.candidate);
+            log("*** Outgoing ICE candidate: " + event.candidate.candidate);
             sendToServer({
                 type: "new-ice-candidate",
-                target: remoteUserName,
+                target: targetUsername.current,
                 candidate: event.candidate,
             })
         } else {
@@ -127,7 +142,8 @@ function App1() {
     };
 
     const handleICEConnectionStateChangeEvent = (event: Event) => {
-        console.log("ice连接状态改变", event);
+        // @ts-ignore
+        log(`*** ICE connection state changed to ${event}` + peerConnection.current.iceConnectionState);
         switch (peerConnection.current?.iceConnectionState) {
             case "closed":
             case "failed":
@@ -135,44 +151,45 @@ function App1() {
                 closeVideoCall();
                 break;
             case "new":
-                console.log("ice连接状态-new");
+                // console.log("ice连接状态-new");
                 break;
             case "checking":
-                console.log("ice连接状态-checking");
+                // console.log("ice连接状态-checking");
                 break;
             case "connected":
-                console.log("ice连接状态-connected-部分连接成功");
+                // console.log("ice连接状态-connected-部分连接成功");
                 break;
             case "completed":
-                console.log("ice连接状态-completed-完全连接成功")
+                // console.log("ice连接状态-completed-完全连接成功")
         }
     };
 
     const handleICEGatheringStateChangeEvent = (event: Event) => {
-        console.log("ice收集状态发生改变", event)
+        log(`*** ICE gathering state changed to: ${event}` + peerConnection?.current?.iceGatheringState);
     };
 
     const handleSignalingStateChangeEvent = (event: Event) => {
-        console.log("信令状态发生改变", event, "  ", "当前状态：", peerConnection.current?.signalingState);
+        log(`*** WebRTC signaling state changed to: ${event}` + peerConnection?.current?.signalingState);
+
         switch (peerConnection.current?.signalingState) {
             case "closed":
-                console.log("信令状态-关闭连接");
+                // console.log("信令状态-关闭连接");
                 closeVideoCall();
                 break;
             case "stable":
-                console.log("稳定");
+                // console.log("稳定");
                 break;
             case "have-local-offer":
-                console.log("有本地offer");
+                // console.log("有本地offer");
                 break;
             case "have-remote-offer":
-                console.log("有远程offer");
+                // console.log("有远程offer");
                 break;
             case "have-local-pranswer":
-                console.log("有本地临时应答");
+                // console.log("有本地临时应答");
                 break;
             case "have-remote-pranswer":
-                console.log("有远程临时应答");
+                // console.log("有远程临时应答");
                 break;
             default:
                 console.log("default");
@@ -180,38 +197,42 @@ function App1() {
     };
 
     const handleNegotiationNeededEvent = async (event: Event) => {
-        console.log("触发协商事件", event, remoteUserName, "当前状态：", peerConnection.current?.signalingState);
+        log(`*** Negotiation needed${event}`);
         try {
-            if (!peerConnection.current) return;
-            const offer = await peerConnection.current.createOffer();
-            console.log("创建 offer 成功:", offer);
+            log("---> Creating offer");
+            const offer = await peerConnection?.current?.createOffer();
             if (peerConnection.current?.signalingState !== 'stable') {
                 // 说明已经有local-offer或者remote-offer
                 // 只处理发起或者应答就行
+                log("     -- The connection isn't stable yet; postponing...")
                 return;
             }
 
+            log("---> Setting local description to the offer");
             await peerConnection.current.setLocalDescription(offer);
-            console.log("设置本地 offer 成功，当前状态:", peerConnection.current.signalingState);
 
+            log("---> Sending the offer to the remote peer");
             sendToServer({
-                name: userName,
-                target: remoteUserName,
+                name: myUsername.current,
+                target: targetUsername.current,
                 type: "video-offer",
                 sdp: peerConnection.current.localDescription,
             });
         } catch (err) {
-            console.error("协商失败")
+            log("*** The following error occurred while handling the negotiationneeded event:");
+            reportError(err);
         }
     };
 
     const handleTrackEvent = (event: RTCTrackEvent) => {
-        console.log("track-event:", event, event.streams);
+        log("*** Track event");
         if (!remoteVideoRef.current) {
             console.error("remotevideoref错误");
             return
         }
-        remoteVideoRef.current.srcObject = event.streams[0];
+        // @ts-ignore
+        document.getElementById("received_video").srcObject = event.streams[0];
+        // remoteVideoRef.current.srcObject = event.streams[0];
     };
     // const handleTrackEvent111 = (event: RTCTrackEvent) => {
     //     console.log("track-event:", event);
@@ -255,6 +276,7 @@ function App1() {
         //         }
         //     ]
         // };
+        log("Setting up a connection...");
         const officeConfig = config;
         peerConnection.current = new RTCPeerConnection(officeConfig);
 
@@ -322,30 +344,35 @@ function App1() {
     };
 
     const handleConnect = async () => {
-        console.log("主动连接方");
+        log("Starting to prepare an invitation");
         if (peerConnection.current) {
-            alert("已经主动连接");
+            alert("You can't start a call because you already have one open!");
         } else {
-            if (userName === remoteUserName) {
-                alert("不能自己连自己")
+            if (myUsername.current === targetUsername.current) {
+                alert("I'm afraid I can't let you talk to yourself. That would be weird.");
                 return
-            } else if (userName && remoteUserName) {
-                console.log("开始连接", remoteUserName);
+            } else if (myUsername.current && targetUsername.current) {
+                log("Inviting user " + targetUsername.current);
+                log("Setting up connection to invite user: " + targetUsername.current);
                 createPeerConnection();
 
                 // 获取设备许可
                 try {
                     webCamStream.current = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-                    localVideoRef.current && (localVideoRef.current.srcObject = webCamStream.current);
+                    // @ts-ignore
+                    document.getElementById("local_video").srcObject = webCamStream.current;
                 } catch (err: any) {
                     handleGetUserMediaError(err);
                 }
 
                 // 将媒体流所有轨道添加到连接中
                 try {
-                    webCamStream.current && webCamStream.current.getTracks().forEach(
+                    console.log()
+                    // @ts-ignore
+                    webCamStream.current.getTracks().forEach(
                         track => {
-                            webCamStream.current && peerConnection.current && (peerConnection.current.addTransceiver(track, {streams: [webCamStream.current]}));
+                            // @ts-ignore
+                            peerConnection.current.addTransceiver(track, {streams: [webCamStream.current]})
                         }
                     );
                 } catch (err: any) {
@@ -359,8 +386,8 @@ function App1() {
     };
 
     const handleVideoOfferMsg = async (msg: any)=> {
-        console.log("ws收到来自", msg.name, remoteUserName);
-        setRemoteUserName(msg.name);
+        targetUsername.current = msg.name;
+        log("Received video chat offer from " + targetUsername.current);
         if (!peerConnection.current) {
             // 本地是被动方，主动方给被动方发起邀请，此时需要初始化本地内容
             createPeerConnection();
@@ -372,16 +399,19 @@ function App1() {
         // 判断信令状态是否稳定
         // 非稳定状态
         if (peerConnection.current?.signalingState !== "stable") {
-            console.log("连接信令是非稳定状态");
+            log("  - But the signaling state isn't stable, so triggering rollback");
+            // @ts-ignore
+
             if (peerConnection.current) {
                 await Promise.all([
-                    peerConnection.current.setLocalDescription({ type: "rollback" }), // 回滚到稳定状态，回滚后是什么状态？，不需要应答了吗？？？
-                    peerConnection.current.setRemoteDescription(desc),
+                    peerConnection?.current.setLocalDescription({ type: "rollback" }), // 回滚到稳定状态，回滚后是什么状态？，不需要应答了吗？？？
+                    peerConnection?.current.setRemoteDescription(desc),
                 ]);
                 return;
             }
+
         } else {
-            console.log("稳定状态，设置远程sdp");
+            log ("  - Setting remote description");
             await peerConnection.current.setRemoteDescription(desc);
         }
 
@@ -394,25 +424,17 @@ function App1() {
                 return;
             }
 
-            localVideoRef.current && (localVideoRef.current.srcObject = webCamStream.current);
+            // @ts-ignore
+            document.getElementById("local_video").srcObject = webCamStream.current;
 
             try {
 
-                const stream = webCamStream.current;
-                const pc = peerConnection.current;
-                if (!stream || !pc) {
-                    console.error("添加轨道失败：媒体流或 PeerConnection 未初始化");
-                    return;
-                }
-// 确保所有轨道都被添加
-                stream.getTracks().forEach(track => {
-                    try {
-                        pc.addTransceiver(track, { streams: [stream] });
-                        console.log(`轨道 ${track.kind}（ID: ${track.id}）已添加`); // 打印日志确认
-                    } catch (err) {
-                        console.error(`添加轨道 ${track.kind} 失败:`, err);
+                webCamStream.current.getTracks().forEach(
+                    track => {
+                        // @ts-ignore
+                        peerConnection.current.addTransceiver(track, {streams: [webCamStream.current]})
                     }
-                });
+                );
 
                 // webCamStream.current.getTracks().forEach(
                 //     track => {
@@ -424,60 +446,54 @@ function App1() {
             }
         }
 
-        console.log("创建和发送answer给呼叫者");
+        log("---> Creating and sending answer to caller");
+
         peerConnection.current && (await peerConnection.current.setLocalDescription(await peerConnection.current.createAnswer()));
 
         sendToServer({
-            name: userName,
-            target: msg.name,
+            name: myUsername.current,
+            target: targetUsername.current,
             type: "video-answer",
             sdp: peerConnection.current?.localDescription,
         });
     }
 
     const handleVideoAnswerMsg = async (msg: any) => {
+        log("*** Call recipient has accepted our call");
 
-        if (msg.name !== remoteUserName) {
-            console.error("收到无关answer，发送方：", msg.name, "预期：", remoteUserName);
-            return;
-        }
-        console.log("对方已接受呼叫，当前信令状态:", peerConnection.current?.signalingState);
-
-        // 关键检查：只有在 have-local-offer 状态才能处理 answer
-        if (peerConnection.current?.signalingState !== "have-local-offer") {
-            console.error("错误：处理 answer 时状态异常，当前状态:", peerConnection.current?.signalingState);
-            return;
-        }
         const desc = new RTCSessionDescription(msg.sdp);
-        await peerConnection.current?.setRemoteDescription(desc).catch((reason) => {
-            console.error("设置remote answer失败:", reason);
-        });
+        // @ts-ignore
+        await peerConnection.current.setRemoteDescription(desc).catch(reportError);
     };
 
     const handleNewICECandidateMsg = async (msg: any) => {
         const candidate = new RTCIceCandidate(msg.candidate);
 
-        console.log("收到ice候选：", JSON.stringify(candidate));
+        log("*** Adding received ICE candidate: " + JSON.stringify(candidate));
 
         try {
             await peerConnection.current?.addIceCandidate(candidate);
         } catch (err: any) {
-            console.error(err);
+            reportError(err);
         }
     }
 
     const ConnectionWss = () => {
+        log(`Connecting to server: ${wss_url}`);
         websocket.current = new WebSocket(wss_url, "json");
 
         if (websocket.current) {
             websocket.current.onopen = handleOnOpen;
             websocket.current.onmessage = (event: MessageEvent) => {
+
                 if (websocket.current && websocket.current.readyState === WebSocket.OPEN) {
                     const msg = JSON.parse(event.data);
+                    log("Message received: ");
+                    console.dir(msg);
                     switch (msg.type) {
                         case "id":
-                            setUserId(msg.id);
-                            sendUserName(msg.id);
+                            clientID.current = msg.id;
+                            sendUserName();
                             break;
                         case "username":
                             break;
@@ -519,9 +535,9 @@ function App1() {
                             ))
                         }
                         <span className="app-room-label">用户名:</span>
-                        <input className="app-room-id" value={userName} type="text" placeholder="请输入用户名" onChange={(event) => setUserName(event.target.value)}></input>
+                        <input className="app-room-id" value={myUsername.current} type="text" placeholder="请输入用户名" onChange={(event) => {myUsername.current = event.target.value;console.log(event.target.value)}}></input>
                         <span className="app-room-label">连接的用户名:</span>
-                        <input className="app-room-id" value={remoteUserName} type="text" placeholder="请输入用户名" onChange={(event) => setRemoteUserName(event.target.value)}></input>
+                        <input className="app-room-id" value={targetUsername.current} type="text" placeholder="请输入用户名" onChange={(event) => {targetUsername.current = event.target.value}}></input>
                     </div>
                 )}
             </header>
@@ -608,6 +624,7 @@ function App1() {
                             <div className="local-video">
                                 <span>local</span>
                                 <video
+                                    id="local_video"
                                     ref={localVideoRef}
                                     className="video-call__video video-call__video--remote"
                                     autoPlay
@@ -617,10 +634,10 @@ function App1() {
                             <div className="remote-video">
                                 <span>remote</span>
                                 <video
+                                    id="received_video"
                                     ref={remoteVideoRef}
                                     className="video-call__video video-call__video--remote"
                                     autoPlay
-                                    id="received_video"
                                 />
                             </div>
                         </div>
