@@ -199,14 +199,16 @@ function App1() {
     const handleNegotiationNeededEvent = async (event: Event) => {
         log(`*** Negotiation needed${event}`);
         try {
+
+            log("---> Creating offer");
+            const offer = await peerConnection?.current?.createOffer();
+
             if (peerConnection.current?.signalingState !== 'stable') {
                 // 说明已经有local-offer或者remote-offer
                 // 只处理发起或者应答就行
                 log("     -- The connection isn't stable yet; postponing...")
                 return;
             }
-            log("---> Creating offer");
-            const offer = await peerConnection?.current?.createOffer();
             log("---> Setting local description to the offer");
             await peerConnection.current.setLocalDescription(offer);
 
@@ -278,6 +280,7 @@ function App1() {
         peerConnection.current.onsignalingstatechange = handleSignalingStateChangeEvent;
 
         /**
+         * 媒体配置或传输规则发生改变会重新触发
          * 当本地RTCPeerConnection检测到会话需要重新协商时触发。
          * 例如：首次建立连接时、添加 / 移除媒体轨道（track）、网络状况剧烈变化等，导致当前会话描述（SDP）无法满足需求。
          * 自动触发的吗，建立连接是什么时候触发，添加/移除媒体轨道由代码掌控触发，网络呢自动触发吗
@@ -389,7 +392,6 @@ function App1() {
             localVideoRef.current && (localVideoRef.current.srcObject = webCamStream.current);
 
             try {
-
                 webCamStream.current.getTracks().forEach(
                     track => {
                         webCamStream.current && peerConnection.current?.addTransceiver(track, { streams: [webCamStream.current]});
