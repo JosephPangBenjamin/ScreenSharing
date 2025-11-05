@@ -189,8 +189,46 @@ ws.onmessage = async ({ data: {description, candidate}}) => {
 };
 
 
-
-
+/**
+ * 信令期间
+ *
+ * 需要交换的信息
+ * 1. 控制消息：用于设置，打开，关闭通道并处理错误
+ * 2. 为了建立连接所需要的信息：设备间能够彼此交谈所需的IP寻址和端口信息
+ * 3. 媒体能力协商：交互双方可以理解哪些编码器和媒体数据格式
+ * 这些都要在webrtc会议开始之前达成一致
+ * 只有信令成功完成后，打开webrtc对等连接的过程菜真正开始
+ *
+ * 信令过程
+ * 为了开启一个 WebRTC 会话，以下事件需要依次发生：
+ * 每个 Peer 创建一个 RTCPeerConnection 对象，用来表示其 WebRTC 会话端。
+ * 每个 Peer 建立一个 icecandidate 事件的响应程序，用来在监测到该事件时将这些 candidates 通过信令通道发送给另一个 Peer。
+ * 每个 Peer 建立一个 track 事件的响应程序，这个事件会在远程 Peer 添加一个 track 到其 stream 上时被触发。这个响应程序应将 tracks 和其消受者联系起来，例如<video>元素。
+ * 呼叫者创建并与接收者共享一个唯一的标识符或某种令牌，使得它们之间的呼叫可以由信令服务器上的代码来识别。此标识符的确切内容和形式取决于你。
+ * 每个 Peer 连接到一个约定的信令服务器，如 WebSocket 服务器，他们都知道如何与之交换消息。
+ * 每个 Peer 告知信令服务器他们想加入同一 WebRTC 会话（由步骤 4 中建立的令牌标识）。
+ * 描述、候选地址等——之后会有更多
+ *
+ * ICE重连
+ * ICE 重连有两个级别：
+ * 全 ICE 重连会导致会话中的所有媒体流重新协商。
+ * 部分 ICE 重连允许 ICE 重新协商特定媒体流，而不是所有媒体流进行重新协商。
+ * 如果你需要以某种方式更改连接的配置（例如更改为不同的 ICE 服务器集），你可以调用 RTCPeerConnection.setConfiguration() 设置新的 RTCConfiguration 字典，然后重新启动 ICE。
+ *
+ * 要明确触发 ICE 重新启动，只需通过调用 RTCPeerConnection.createOffer() 启动一个协商过程，同时指定 iceRestart 选项为 true。然后就像平时那样处理连接过程即可。
+ *
+ * 触发ICE重连
+ * 1.
+ * const offer = await pc.createOffer({ iceRestart: true });
+ * await pc.setLocalDescription(offer);
+ * signaler.send({ description: offer })
+ *
+ * 2.
+ * pc.restartIce();
+ * 生成一个带有 iceRestart: true 的新 offer；
+ * 自动调用 setLocalDescription 应用该 offer；
+ * 触发 negotiationneeded 事件（如果需要）。
+ */
 
 
 

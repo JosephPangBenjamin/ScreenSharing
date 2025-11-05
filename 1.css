@@ -16,7 +16,6 @@
 /* The grid that contains it all */
 
 .container {
-    display: grid;
     min-width: 1250px;
     height: 100%;
     grid-template-areas: "infobox infobox infobox"
