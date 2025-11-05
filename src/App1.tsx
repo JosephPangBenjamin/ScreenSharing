@@ -335,6 +335,7 @@ function App1() {
 
                 // 将媒体流所有轨道添加到连接中
                 try {
+                    if (!webCamStream.current) return;
                     webCamStream.current && webCamStream.current.getTracks().forEach(
                         track => {
                             webCamStream.current && peerConnection.current && (peerConnection.current.addTransceiver(track, {streams: [webCamStream.current]}));
