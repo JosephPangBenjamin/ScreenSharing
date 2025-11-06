@@ -89,7 +89,7 @@ class Signaler {
         try {
             await this.myPeerConnection.addIceCandidate(candidate);
         } catch (e) {
-            if (!ignoreOffer) {
+            if (!this.ignoreOffer) {
                 console.error("不能被忽略的offer的ice添加异常", e.message);
                 throw e;
             }
@@ -184,16 +184,10 @@ class Signaler {
                 { urls: "stun:stun.mozilla.org:3478" },    // 备用STUN（提高可靠性
                 { urls: "stun:stun.stunprotocol.org" },
 
-                { urls: "stun:stun.l.google.com:19302" }, // 搭配 STUN 使用
                 {
-                    urls: "turns:openrelay.metered.ca:443", // 加密协议+端口
-                    username: "openrelayproject",
-                    credential: "openrelayproject"
-                },
-                {
-                    urls: "turn:openrelay.metered.ca:443", // 备用非加密（若加密失败）
-                    username: "openrelayproject",
-                    credential: "openrelayproject"
+                    urls: "turn:8.140.237.167:3478",
+                    username: "webrtc", // 配置文件中定义的用户名
+                    credential: "123456" // 配置文件中定义的密码
                 }
             ],
         });
