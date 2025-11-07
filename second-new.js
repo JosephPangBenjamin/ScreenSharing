@@ -173,7 +173,7 @@ class Signaler {
         document.getElementById("hangup-button").disabled = true;
     };
 
-// 在类中引用时需绑定this（或改为类方法）
+    // 在类中引用时需绑定this（或改为类方法）
     handleGetUserMediaError = (e) => {
         // ...（错误处理不变）
         closeVideoCall.call(this); // 绑定当前实例
@@ -187,14 +187,14 @@ class Signaler {
             // srflx stun服务器
             // relay turn服务器
             iceServers: [
-                { urls: "stun:stun.l.google.com:19302" }, // 主STUN
-                { urls: "stun:stun.mozilla.org:3478" },    // 备用STUN（提高可靠性
-                { urls: "stun:stun.stunprotocol.org" },
                 {
                     urls: "turn:8.140.237.167:3478",
                     username: "webrtc", // 配置文件中定义的用户名
                     credential: "123456" // 配置文件中定义的密码
-                }
+                },
+                // { urls: "stun:stun.l.google.com:19302" }, // 主STUN
+                // { urls: "stun:stun.mozilla.org:3478" },    // 备用STUN（提高可靠性
+                // { urls: "stun:stun.stunprotocol.org" },
             ],
         });
 
@@ -285,7 +285,6 @@ class Signaler {
     monitorLinkQuality = () => {
         // 直接调用原生getStats，绕开适配器
         const nativeGetStats = this.myPeerConnection.webkitGetStats || this.myPeerConnection.mozGetStats || this.myPeerConnection.getStats;
-
         setInterval(() => {
             nativeGetStats.call(this.myPeerConnection).then(stats => {
                 let videoLost = 0;
@@ -299,8 +298,45 @@ class Signaler {
                     }
                 });
 
+                const result = {
+                    videoLossRate: 0,    // 视频丢包率
+                    audioLossRate: 0,    // 音频丢包率
+                    videoBitrate: 0,     // 视频接收码率（bps）
+                    rtt: 0               // 往返延迟（ms）
+                };
+
+                stats.forEach(stat => {
+                    // 视频丢包率
+                    if (stat.type === 'inbound-rtp' && stat.kind === 'video') {
+                        const total = (stat.packetsReceived || 0) + (stat.packetsLost || 0);
+                        result.videoLossRate = total > 0 ? (stat.packetsLost / total) * 100 : 0;
+                        // 视频码率（通过字节差计算）
+                        if (stat.bytesReceived && stat.timestamp) {
+                            const now = Date.now();
+                            const bytesDiff = stat.bytesReceived - (window.lastVideoBytes || 0);
+                            const timeDiff = (now - (window.lastVideoTime || 0)) / 1000; // 秒
+                            result.videoBitrate = timeDiff > 0 ? (bytesDiff * 8) / timeDiff : 0;
+                            window.lastVideoBytes = stat.bytesReceived;
+                            window.lastVideoTime = now;
+                        }
+                    }
+                    // 往返延迟（RTT）
+                    if (stat.type === 'transport') {
+                        result.rtt = stat.roundTripTime || 0;
+                    }
+                });
+
+                console.log('网络状况：', result);
+
                 const lossRate = videoTotal > 0 ? (videoLost / videoTotal) * 100 : 0;
                 console.log('视频丢包率：', lossRate.toFixed(2) + '%');
+
+                const videoSender = this.myPeerConnection.getSenders().find(s => s.track.kind === 'video');
+                if (lossRate > 6) { // 丢包率>6%，降低码率
+                    videoSender.setParameters({ encodings: [{ maxBitrate: 300000 }] });
+                } else if (lossRate < 2) { // 丢包率<2%，提高码率
+                    videoSender.setParameters({ encodings: [{ maxBitrate: 1500000 }] });
+                }
             }).catch(err => {
                 console.error('获取丢包率失败:', err);
             });
@@ -367,8 +403,8 @@ class Signaler {
                 break;
         }
     }
-    handleICEGatheringStateChangeEvent(evt) {}
-    handleSignalingStateChangeEvent(evt) {}
+    handleICEGatheringStateChangeEvent(evt) { }
+    handleSignalingStateChangeEvent(evt) { }
 
     onmessage = async (evt) => {
         var chatBox = document.querySelector(".chatbox");

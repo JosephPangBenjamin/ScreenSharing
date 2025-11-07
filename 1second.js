@@ -3,8 +3,7 @@ const mediaConstraints = {
     video: true, // ...and we want a video track
 };
 class Signaler {
-    ws;
-    wsUrl = null;
+    ws
     localUUID = null;
     makingOffer = false
     polite = true
@@ -16,7 +15,17 @@ class Signaler {
     transceiver = null;         // RTCRtpTransceiver
     webcamStream = null;
     constructor(url) {
-        this.wsUrl = url;
+        this.ws = new WebSocket(url, "json");
+        if (this.ws.readyState === WebSocket.OPEN) {
+
+        }
+        this.ws.onopen = (evt) => {
+            document.getElementById("text").disabled = false;
+            document.getElementById("send").disabled = false;
+            this.localUUID = this.generateUUID();
+            this.ws.onmessage = this.onmessage;
+        }
+        return this.ws;
     }
 
     generateUUID() {
@@ -44,6 +53,7 @@ class Signaler {
             console.error("处理answer失败：", e);
         }
     }
+
     handleVideoOfferMsg = async (msg) => {
         this.isPolite(msg.UUID);
         this.targetUsername = msg.name;
@@ -60,14 +70,16 @@ class Signaler {
             }
 
             // 初始化媒体流
-            const localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-            this.webcamStream = localStream;
-            document.getElementById("local_video").srcObject = localStream;
-            // 严格按顺序添加：先音频后视频
-            if (this.myPeerConnection.getSenders().length === 0) {
-                localStream.getAudioTracks().forEach(track => this.myPeerConnection.addTrack(track, localStream));
-                localStream.getVideoTracks().forEach(track => this.myPeerConnection.addTrack(track, localStream));
-            }
+            navigator.mediaDevices
+                .getUserMedia(mediaConstraints)
+                .then( (localStream) => {
+                    document.getElementById("local_video").srcObject = localStream;
+                    // 本地和远程都先加音频，后加视频
+                    localStream.getAudioTracks().forEach(track => this.myPeerConnection.addTrack(track, localStream)); // 音频在前
+                    localStream.getVideoTracks().forEach(track => this.myPeerConnection.addTrack(track, localStream)); // 视频在后
+                })
+                .catch(this.handleGetUserMediaError);
+
 
             const desc = new RTCSessionDescription(msg.sdp);
             await this.myPeerConnection.setRemoteDescription(desc);
@@ -86,10 +98,6 @@ class Signaler {
         }
     }
     handleNewICECandidateMsg = async (msg) => {
-        if (!this.myPeerConnection) {
-            console.warn("收到ICE候选但未初始化PeerConnection，忽略");
-            return;
-        }
         const candidate = new RTCIceCandidate(msg.candidate);
         try {
             await this.myPeerConnection.addIceCandidate(candidate);
@@ -109,10 +117,8 @@ class Signaler {
         });
     }
     sendToServer = (msg) => {
-        if (this.ws.readyState === WebSocket.OPEN) {
-            const msgJSON = JSON.stringify(msg)
-            this.ws.send(msgJSON);
-        }
+        const msgJSON = JSON.stringify(msg)
+        this.ws.send(msgJSON);
     }
 
     handleUserlistMsg = (msg) => {
@@ -132,7 +138,7 @@ class Signaler {
         });
     }
 
-    invite = async (evt) => {
+    invite = (evt) => {
         if (this.myPeerConnection) {
             alert("You can't start a call because you already have one open!");
         } else {
@@ -149,39 +155,39 @@ class Signaler {
 
             this.createPeerConnection();
 
-            // 同步获取流并添加轨道
-            const localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-            this.webcamStream = localStream;
-            document.getElementById("local_video").srcObject = localStream;
-            localStream.getAudioTracks().forEach(track => this.myPeerConnection.addTrack(track, localStream));
-            localStream.getVideoTracks().forEach(track => this.myPeerConnection.addTrack(track, localStream));
+            navigator.mediaDevices
+                .getUserMedia(mediaConstraints)
+                .then((localStream) => {
+                    document.getElementById("local_video").srcObject = localStream;
+                    // 本地和远程都先加音频，后加视频
+                    localStream.getAudioTracks().forEach(track => this.myPeerConnection.addTrack(track, localStream)); // 音频在前
+                    localStream.getVideoTracks().forEach(track => this.myPeerConnection.addTrack(track, localStream)); // 视频在后
+                })
+                .catch(this.handleGetUserMediaError);
         }
     }
 
-    // 简单实现closeVideoCall（根据需求扩展）
-    closeVideoCall = () => {
-        if (this.myPeerConnection) {
-            this.myPeerConnection.close();
-            this.myPeerConnection = null;
-        }
-        // 释放媒体流等其他资源
-        if (this.webcamStream) {
-            this.webcamStream.getTracks().forEach(track => track.stop());
-            this.webcamStream = null;
-        }
-        document.getElementById("received_video").srcObject = null;
-        document.getElementById("hangup-button").disabled = true;
-    };
-
-// 在类中引用时需绑定this（或改为类方法）
     handleGetUserMediaError = (e) => {
-        // ...（错误处理不变）
-        closeVideoCall.call(this); // 绑定当前实例
-    }
-    createPeerConnection = () => {
-        if (this.myPeerConnection) {
-            this.myPeerConnection.close();
+        switch (e.name) {
+            case "NotFoundError":
+                alert(
+                    "Unable to open your call because no camera and/or microphone" +
+                    "were found.",
+                );
+                break;
+            case "SecurityError":
+            case "PermissionDeniedError":
+                // Do nothing; this is the same as the user canceling the call.
+                break;
+            default:
+                alert("Error opening your camera and/or microphone: " + e.message);
+                break;
         }
+
+        closeVideoCall();
+    }
+
+    createPeerConnection = () => {
         this.myPeerConnection = new RTCPeerConnection({
             // host
             // srflx stun服务器
@@ -190,6 +196,7 @@ class Signaler {
                 { urls: "stun:stun.l.google.com:19302" }, // 主STUN
                 { urls: "stun:stun.mozilla.org:3478" },    // 备用STUN（提高可靠性
                 { urls: "stun:stun.stunprotocol.org" },
+
                 {
                     urls: "turn:8.140.237.167:3478",
                     username: "webrtc", // 配置文件中定义的用户名
@@ -222,46 +229,12 @@ class Signaler {
         }
     }
     handleTrackEvent = (evt) => {
-        const remoteVideo = document.getElementById("received_video");
-        const remoteStream = evt.streams[0];
-        const videoTracks = remoteStream.getVideoTracks();
-
-        // 仅在流未绑定且包含有效轨道时处理
-        if (remoteVideo.srcObject !== remoteStream && videoTracks.length > 0 && videoTracks[0].enabled) {
-            remoteVideo.srcObject = remoteStream;
-            console.log("远程流已绑定到视频元素（仅一次）");
-
-            remoteVideo.play()
-                .then(() => console.log("远程视频播放成功（仅一次）"))
-                .catch(err => {
-                    if (err.name === "AbortError") {
-                        console.warn("play()被打断，1秒后重试");
-                        setTimeout(() => remoteVideo.play().catch(/* 处理逻辑 */), 1000);
-                    }
-                });
-        }
+        // RTCRtpReceiver       receiver
+        // MediaStreamTrack     track
+        // MediaStream[]        streams
+        // RTCRtpTransceiver    transceiver
+        document.getElementById("received_video").srcObject = evt.streams[0];
         document.getElementById("hangup-button").disabled = false;
-    }
-    // 新增：显示用户交互播放按钮
-    showPlayButton = (remoteVideo) => {
-        const playBtn = document.getElementById("remote-play-btn");
-        // 若按钮已存在，无需重复创建
-        if (playBtn) return;
-
-        const btn = document.createElement("button");
-        btn.id = "remote-play-btn";
-        btn.textContent = "点击播放远程视频";
-        btn.style.position = "absolute";
-        btn.style.top = "50%";
-        btn.style.left = "50%";
-        btn.style.transform = "translate(-50%, -50%)";
-        btn.onclick = () => {
-            remoteVideo.play()
-                .then(() => btn.remove()) // 播放成功后移除按钮
-                .catch(err => alert("播放失败：" + err.message));
-        };
-        // 将按钮添加到视频元素父容器（确保覆盖在视频上）
-        remoteVideo.parentNode.appendChild(btn);
     }
     handleNegotiationNeededEvent = async () => {
         try {
@@ -281,90 +254,9 @@ class Signaler {
             this.makingOffer = false;
         }
     }
-    // 新增：监控链路质量（可选，用于定位丢包问题）
-    monitorLinkQuality = () => {
-        // 直接调用原生getStats，绕开适配器
-        const nativeGetStats = this.myPeerConnection.webkitGetStats || this.myPeerConnection.mozGetStats || this.myPeerConnection.getStats;
-
-        setInterval(() => {
-            nativeGetStats.call(this.myPeerConnection).then(stats => {
-                let videoLost = 0;
-                let videoTotal = 0;
-
-                // 遍历stats，统计视频丢包（根据浏览器差异调整字段）
-                stats.forEach(stat => {
-                    if (stat.type === 'inbound-rtp' && stat.kind === 'video') {
-                        videoLost = stat.packetsLost || 0;
-                        videoTotal = stat.packetsReceived + videoLost;
-                    }
-                });
-
-                const lossRate = videoTotal > 0 ? (videoLost / videoTotal) * 100 : 0;
-                console.log('视频丢包率：', lossRate.toFixed(2) + '%');
-            }).catch(err => {
-                console.error('获取丢包率失败:', err);
-            });
-        }, 3000);
-
-    }
-    initWebSocket = () => {
-        this.ws = new WebSocket(this.wsUrl, "json");
-        if (this.ws.readyState === WebSocket.OPEN) {
-
-        }
-        this.ws.onopen = (evt) => {
-            document.getElementById("text").disabled = false;
-            document.getElementById("send").disabled = false;
-            this.localUUID = this.generateUUID();
-            this.ws.onmessage = this.onmessage;
-        }
-        // 关闭时自动重连
-        this.ws.onclose = () => {
-            console.log('WebSocket关闭，3秒后重连...');
-            setTimeout(this.initWebSocket, 3000);
-        };
-    }
-    // 新增：重建PeerConnection（ICE failed时调用）
-    recreatePeerConnection = async () => {
-        this.closeVideoCall(); // 先关闭旧连接
-        this.initWebSocket();
-        if (this.ws.readyState === WebSocket.OPEN) {
-            this.createPeerConnection(); // 重建连接
-            // 重新添加媒体轨道（复用之前的localStream，避免重复调用getUserMedia）
-            if (this.webcamStream && this.myPeerConnection.getSenders().length === 0) {
-                this.webcamStream.getAudioTracks().forEach(track => this.myPeerConnection.addTrack(track, this.webcamStream));
-                this.webcamStream.getVideoTracks().forEach(track => this.myPeerConnection.addTrack(track, this.webcamStream));
-            }
-            // 重新发起offer协商
-            await this.handleNegotiationNeededEvent();
-        }
-
-    }
-    handleICEConnectionStateChangeEvent = async (evt) => {
-        const iceState = this.myPeerConnection.iceConnectionState;
-        console.log("=== ICE 连接状态 ===", iceState);
-        switch (iceState) {
-            case "checking":
-                console.log("正在交换 ICE 候选，尝试连接...");
-                break;
-            case "connected":
-                console.log("ICE 连接成功，媒体流开始传输");
-                // 连接成功后，可开启链路质量监控
-                this.monitorLinkQuality();
-                break;
-            case "disconnected":
-                console.warn("ICE 连接断开，尝试重连...");
-                // 延迟1秒重启ICE（避免频繁重试）
-                setTimeout(() => {
-                    if (this.myPeerConnection && this.myPeerConnection.signalingState !== "closed") {
-                        this.myPeerConnection.restartIce(); // 重启ICE，重新收集候选
-                    }
-                }, 5000);
-                break;
-            case "failed":
-                console.error("ICE 连接彻底失败，尝试重建PeerConnection...");
-                await this.recreatePeerConnection(); // 彻底重建连接（需重新协商offer/answer）
-                break;
+    handleICEConnectionStateChangeEvent = (evt) => {
+        if (this.myPeerConnection.iceConnectionState === "failed") {
+            this.myPeerConnection.restartIce();
         }
     }
     handleICEGatheringStateChangeEvent(evt) {}
@@ -409,7 +301,7 @@ class Signaler {
                     await this.handleVideoAnswerMsg(msg);
                     break;
                 case "new-ice-candidate":
-                    await this.handleNewICECandidateMsg(msg);
+                    this.handleNewICECandidateMsg(msg);
                     break;
                 case "hang-up":
                     this.hangleHangUpMsg(msg);
@@ -421,5 +313,4 @@ class Signaler {
 }
 
 var signaler = new Signaler("wss://www.qtai.net.cn:3000/");
-signaler.initWebSocket();
 
