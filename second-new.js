@@ -182,21 +182,26 @@ class Signaler {
         if (this.myPeerConnection) {
             this.myPeerConnection.close();
         }
-        this.myPeerConnection = new RTCPeerConnection({
-            // host
-            // srflx stun服务器
-            // relay turn服务器
+        const pcConfig = {
             iceServers: [
                 {
-                    urls: "turn:8.140.237.167:3478",
-                    username: "webrtc", // 配置文件中定义的用户名
-                    credential: "123456" // 配置文件中定义的密码
+                    urls: 'stun:8.140.237.167:3478'  // 仅STUN
                 },
-                // { urls: "stun:stun.l.google.com:19302" }, // 主STUN
-                // { urls: "stun:stun.mozilla.org:3478" },    // 备用STUN（提高可靠性
-                // { urls: "stun:stun.stunprotocol.org" },
+                {
+                    urls: 'turn:8.140.237.167:3478?transport=udp',  // 优先UDP中继
+                    username: 'webrtc',
+                    credential: '123456'
+                },
+                {
+                    urls: 'turn:8.140.237.167:3478?transport=tcp',  // 备用TCP中继（应对UDP封锁）
+                    username: 'webrtc',
+                    credential: '123456'
+                }
             ],
-        });
+            iceTransportPolicy: 'relay',  // 测试阶段强制使用TURN中继，验证是否因NAT类型导致问题
+            iceConnectionTimeout: 20000  // 延长超时时间
+        };
+        this.myPeerConnection = new RTCPeerConnection(pcConfig);
 
         this.myPeerConnection.onicecandidate = this.handleICECandidateEvent;
         this.myPeerConnection.ontrack = this.handleTrackEvent;
@@ -240,6 +245,7 @@ class Signaler {
                     }
                 });
         }
+        document.getElementById("hangup-button").click = this.closeVideoCall;
         document.getElementById("hangup-button").disabled = false;
     }
     // 新增：显示用户交互播放按钮
@@ -332,11 +338,12 @@ class Signaler {
                 console.log('视频丢包率：', lossRate.toFixed(2) + '%');
 
                 const videoSender = this.myPeerConnection.getSenders().find(s => s.track.kind === 'video');
-                if (lossRate > 6) { // 丢包率>6%，降低码率
-                    videoSender.setParameters({ encodings: [{ maxBitrate: 300000 }] });
-                } else if (lossRate < 2) { // 丢包率<2%，提高码率
-                    videoSender.setParameters({ encodings: [{ maxBitrate: 1500000 }] });
-                }
+                // console.log('当前视频发送参数：', videoSender.getParameters());
+                // if (lossRate > 5) { // 丢包率>6%，降低码率
+                //     videoSender.setParameters({ encodings: [{ maxBitrate: 300000 }] });
+                // } else if (lossRate < 2) { // 丢包率<2%，提高码率
+                //     videoSender.setParameters({ encodings: [{ maxBitrate: 1500000 }] });
+                // }
             }).catch(err => {
                 console.error('获取丢包率失败:', err);
             });
@@ -389,7 +396,8 @@ class Signaler {
                 this.monitorLinkQuality();
                 break;
             case "disconnected":
-                console.warn("ICE 连接断开，尝试重连...");
+                console.warn(`ICE 连接断开，尝试重连... 断开原因${evt}`);
+                console.log("通过断开原因尝试不同解决方法，如网络切换导致就重启收集，主动放弃就断开");
                 // 延迟1秒重启ICE（避免频繁重试）
                 setTimeout(() => {
                     if (this.myPeerConnection && this.myPeerConnection.signalingState !== "closed") {
