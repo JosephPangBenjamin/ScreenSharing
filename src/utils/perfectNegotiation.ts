@@ -13,11 +13,14 @@
  */
 
 const constraints = { audio: true, video: true};
-const selfVideo: HTMLVideoElement = document.querySelector("#video-selfview");
-const remoteVideo: HTMLVideoElement = document.querySelector("#video-remoteview");
+const selfVideo: HTMLVideoElement | null = document.querySelector("#video-selfview");
+const remoteVideo: HTMLVideoElement | null = document.querySelector("#video-remoteview");
+// @ts-ignore
 const pc: RTCPeerConnection;
+// @ts-ignore
 const ws: WebSocket;
 // 两端都随意调用 获取本地的媒体信息
+// @ts-ignore
 const start = async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -33,6 +36,7 @@ const start = async () => {
             // 给连接添加轨道，后面的流表示当前track属于后面这个stream，也就是当前track关联到后面这个stream
             pc.addTrack(track, stream); // addTrack(track, ...a: MediaStream[])
         });
+        // @ts-ignore
         selfVideo.srcObject = stream;
     } catch (err: any) {
         alert(err.message);
@@ -41,15 +45,18 @@ const start = async () => {
 
 // 处理传入的轨道
 // 处理该对等连接协商接收的入站视频和音频轨迹
+// @ts-ignore
 pc.ontrack = (evt: RTCTrackEvent) => {
     const {track, streams} = evt;
     // track 接收到的视频/音频轨道
     // streams ReadonlyArray<MediaStream> 媒体流对象数组，每个对象包含一个该轨道的流（极少情况下，一个轨道可能属于多个流）
     // 所以streams数组对象中的第一个，位于0号索引
     track.onunmute = () => {
+        // @ts-ignore
         if (remoteVideo.srcObject) {
             return
         }
+        // @ts-ignore
         remoteVideo.srcObject = streams[0];
         // 我们为轨道添加一个取消静音事件处理器，因为轨道一旦开始接收数据包，就会取消静音。我们将接收代码的其余部分放在这里
         // 如果我们已经从远程对等方接收到视频（我们可以通过远程视图的 <video> 元素的 srcObject 属性已经有值来判断），
@@ -75,6 +82,7 @@ let makingOffer = false;
  *
  * 一旦邀约创建、设置和发送完成（或发生错误），makingOffer 就会被设回 false。
  */
+// @ts-ignore
 pc.onnegotiationneeded = async () => {
     try {
         makingOffer = true;
@@ -91,7 +99,7 @@ pc.onnegotiationneeded = async () => {
         makingOffer = false;
     }
 };
-
+// @ts-ignore
 pc.oniceconnectionstatechange = () => {
     if (pc.iceConnectionState === "failed") {
         //ICE 重新启动
@@ -105,6 +113,7 @@ pc.oniceconnectionstatechange = () => {
  * 在setLocalDescription后开始触发收集ice候选
  * @param evt
  */
+// @ts-ignore
 pc.onicecandidate = (evt: RTCPeerConnectionIceEvent) => {
     const { candidate } = evt;
     const json = JSON.stringify({ candidate });
@@ -121,6 +130,7 @@ let polite = true;
  * @param description 如果传入的消息有description，要么是对方发出的邀约，要么是对方发出的答复
  * @param candidate 如果包含candidate，那么它就是作为渐进式ICE的一部分，从远程收到对等方收到的ICE候选信息
  */
+// @ts-ignore
 ws.onmessage = async ({ data: {description, candidate}}) => {
     try {
         // 在任何其他情况下，我们将尝试处理传入的消息。

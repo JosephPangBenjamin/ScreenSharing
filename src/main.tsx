@@ -1,11 +1,9 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App1 from "./App1.tsx";
-import VideoConference from './components/VideoConference';
-// import './index.scss'
+import App from "./App.tsx";
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <VideoConference />
+    <App />
   </React.StrictMode>,
 )

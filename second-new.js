@@ -198,7 +198,7 @@ class Signaler {
                     credential: '123456'
                 }
             ],
-            iceTransportPolicy: 'relay',  // 测试阶段强制使用TURN中继，验证是否因NAT类型导致问题
+            // iceTransportPolicy: 'relay',  // 测试阶段强制使用TURN中继，验证是否因NAT类型导致问题
             iceConnectionTimeout: 20000  // 延长超时时间
         };
         this.myPeerConnection = new RTCPeerConnection(pcConfig);
