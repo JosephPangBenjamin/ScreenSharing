@@ -30,3 +30,11 @@ export interface FileTransfer {
   senderId: string;
   recipientId?: string;
 }
+
+
+/**
+ * 变量是每次渲染独立的快照，使用变量永远想着这是tmp
+ * 1. 函数式更新获取最新状态
+ * 2. useRef保存最新值
+ * 3. useEffect依赖变量执行操作
+ */
