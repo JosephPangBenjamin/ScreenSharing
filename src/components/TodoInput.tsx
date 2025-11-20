@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState } from "react";
+import "./TodoInput.scss";
 
 
 export const TodoInput = ({ onAddTodo }: { onAddTodo: (text: string) => void }) => {
@@ -11,16 +12,18 @@ export const TodoInput = ({ onAddTodo }: { onAddTodo: (text: string) => void }) 
         setText('');
     }
     return (
-        <form onSubmit={handleSubmit} style={{ marginBottom: '20px'}}>
-            <input
-                type="text"
-                value={text}
-                //  这里为啥不写个用useCallback包裹的函数，不然每次都要重新创建一个函数
-                onChange={e => setText(e.target.value)}
-                placeholder="Add a new todo"
-                style={{ width: '300px', padding: '8px'}}
-            />
-            <button type="submit" style={{ marginLeft: '10px',padding: '8px 16px'}}>
+        <form onSubmit={handleSubmit} className="todo-input-container">
+            <div className="input-container">
+                <input
+                    className="input-sample"
+                    type="text"
+                    value={text}
+                    //  这里为啥不写个用useCallback包裹的函数，不然每次都要重新创建一个函数
+                    onChange={e => setText(e.target.value)}
+                    placeholder="添加一个新待办"
+                />
+            </div>
+            <button type="submit">
                 添加
             </button>
         </form>

@@ -8,11 +8,20 @@ export const priorityOptions = {
     low: { label: '低', color: '#44dd44' },
 };
 
-const PrioritySelector = memo(({ priority, onPriorityChange }: { priority: string, onPriorityChange: () => void }) => {
+const PrioritySelector = memo(({ id, priority, onPriorityChange }: { id: number, priority: string, onPriorityChange: (id: number, text: string) => void }) => {
+
+    const test = Object.entries(priorityOptions).map(([value, { label }]) => {
+        return (
+            <option key={value} value={value}>
+                {label}
+            </option>
+        )
+    });
+
     return (
         <select
             value={priority}
-            onChange={(e) => onPriorityChange(e.target.value)}
+            onChange={(e) => onPriorityChange(id, e.target.value)}
             style={{
                 marginLeft: '10px',
                 border: '1px solid #ddd',
@@ -20,13 +29,7 @@ const PrioritySelector = memo(({ priority, onPriorityChange }: { priority: strin
                 padding: '2px',
             }}
         >
-            {
-                Object.entries(priorityOptions).map(([value, { label }]) => {
-                    <option key={value} value={value}>
-                        {label}
-                    </option>
-                })
-            }
+            {test}
         </select>
     )
 });

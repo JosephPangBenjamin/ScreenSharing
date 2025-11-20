@@ -5,11 +5,12 @@ import PrioritySelector, { priorityOptions } from "./PrioritySelector";
  * React.memo默认进行浅比较，若 props 是对象 / 函数，需确保引用稳定（否则缓存失效）。
  * 对于简单组件，React.memo的比较成本可能高于重渲染成本，无需滥用。
  */
-export const TodoItem = memo(({ todo, onToggle, onDelete, onUpdate }: {
+export const TodoItem = memo(({ todo, onToggle, onDelete, onUpdate, onPriorityChange }: {
     todo: { id: number; text: string; completed: boolean };
     onToggle: (id: number) => void;
     onDelete: (id: number) => void;
     onUpdate: (id: number, text: string) => void;
+    onPriorityChange: (id: number, text: string) => void;
 }) => {
 
     const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -66,7 +67,7 @@ export const TodoItem = memo(({ todo, onToggle, onDelete, onUpdate }: {
     }
     return (
         <div
-            style={{ margin: '8px 0', padding: '8px', border: '1px solid #eee' }}
+            style={{ margin: '8px 0', padding: '8px', border: '1px solid #eee', borderRadius: '16px', background: '#f0f4f9' }}
             onDoubleClick={handleDoubleClick}
         >
             <span style={{
@@ -74,7 +75,7 @@ export const TodoItem = memo(({ todo, onToggle, onDelete, onUpdate }: {
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                background: priorityOptions[todo.priority].color,
+                background: priorityOptions[todo.priority]?.color,
                 marginRight: '8px',
             }}></span>
             <input
@@ -93,8 +94,9 @@ export const TodoItem = memo(({ todo, onToggle, onDelete, onUpdate }: {
                 删除
             </button>
             <PrioritySelector
+                id={todo.id}
                 priority={todo.priority}
-                onPriorityChange={(priority) => { onPriorityChange(todo.id, priority) }}
+                onPriorityChange={onPriorityChange}
             />
 
         </div>

@@ -60,7 +60,7 @@ export const filterAtom = atom('all');
  */
 export const priorityFilterAtom = atom('all');
 
-export const filteredTodosAtom = atom((get) => {
+export const filterdTodosAtom = atom((get) => {
     const todos = get(todosAtom);
     const statusFilter = get(filterAtom);
     const priorityFilter = get(priorityFilterAtom);
@@ -92,7 +92,7 @@ export const filteredTodosAtom = atom((get) => {
  * 惰性计算：只有当依赖的原子（todosAtom或filterAtom）变化时，才会重新计算。
  * 只读性：默认派生原子是只读的（只有get函数），若需修改可添加更新函数（但此处无需）。
  */
-export const filterdTodosAtom = atom((get) => {
+export const filterdTodosAtom111 = atom((get) => {
     const todos = get(todosAtom);
     const filter = get(filterAtom);
 
